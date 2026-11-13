@@ -1,0 +1,281 @@
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.Rendering;
+
+// Dream world dressing, inspired by wisteria tunnels, mirror salt flats, light shafts and glowing painterly forests.
+// Everything here is DreamOnly or swaps material, so the Nightmare version can replace it.
+public static class DreamBuilder
+{
+    const string PrefabDir = "Assets/Prefabs/Props";
+    const string MatDir = "Assets/Materials/Dream";
+    const string MeshDir = "Assets/Meshes";
+
+    static void Ensure(string path)
+    {
+        if (AssetDatabase.IsValidFolder(path)) return;
+        int i = path.LastIndexOf('/');
+        AssetDatabase.CreateFolder(path.Substring(0, i), path.Substring(i + 1));
+    }
+
+    static Color H(string hex) { Color c; ColorUtility.TryParseHtmlString(hex, out c); return c; }
+
+    static Material Lit(string name, string hex, float emission, float smooth)
+    {
+        string p = MatDir + "/" + name + ".mat";
+        var m = AssetDatabase.LoadAssetAtPath<Material>(p);
+        if (m == null) { m = new Material(Shader.Find("Universal Render Pipeline/Lit")); AssetDatabase.CreateAsset(m, p); }
+        m.SetColor("_BaseColor", H(hex));
+        m.SetFloat("_Smoothness", smooth);
+        if (emission > 0f)
+        {
+            m.EnableKeyword("_EMISSION");
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
+            m.SetColor("_EmissionColor", H(hex) * emission);
+        }
+        EditorUtility.SetDirty(m);
+        return m;
+    }
+
+    static Material Custom(string name, string shader)
+    {
+        string p = MatDir + "/" + name + ".mat";
+        var m = AssetDatabase.LoadAssetAtPath<Material>(p);
+        if (m == null) { m = new Material(Shader.Find(shader)); AssetDatabase.CreateAsset(m, p); }
+        return m;
+    }
+
+    // ---- procedural wisteria curtain: hanging strands of small blossoms across an arch ----
+
+    static void AddBlob(Vector3 c, float r, List<Vector3> verts, List<int> tris)
+    {
+        int seg = 6;
+        int baseIndex = verts.Count;
+        verts.Add(c + new Vector3(0, r * 1.3f, 0));
+        float[] ys = { 0.5f, 0f, -0.5f };
+        float[] rs = { 0.85f, 1f, 0.85f };
+        for (int ring = 0; ring < 3; ring++)
+            for (int i = 0; i < seg; i++)
+            {
+                float a = i / (float)seg * Mathf.PI * 2f + ring * 0.5f;
+                verts.Add(c + new Vector3(Mathf.Cos(a) * r * rs[ring], ys[ring] * r * 1.3f, Mathf.Sin(a) * r * rs[ring]));
+            }
+        verts.Add(c + new Vector3(0, -r * 1.3f, 0));
+        int bottom = verts.Count - 1;
+        for (int i = 0; i < seg; i++)
+        {
+            int n = (i + 1) % seg;
+            tris.Add(baseIndex); tris.Add(baseIndex + 1 + n); tris.Add(baseIndex + 1 + i);
+            for (int ring = 0; ring < 2; ring++)
+            {
+                int a0 = baseIndex + 1 + ring * seg + i, a1 = baseIndex + 1 + ring * seg + n;
+                int b0 = baseIndex + 1 + (ring + 1) * seg + i, b1 = baseIndex + 1 + (ring + 1) * seg + n;
+                tris.Add(a0); tris.Add(a1); tris.Add(b0);
+                tris.Add(a1); tris.Add(b1); tris.Add(b0);
+            }
+            tris.Add(bottom); tris.Add(baseIndex + 1 + 2 * seg + i); tris.Add(baseIndex + 1 + 2 * seg + n);
+        }
+    }
+
+    static Mesh WisteriaMesh()
+    {
+        string path = MeshDir + "/WisteriaCurtain.asset";
+        AssetDatabase.DeleteAsset(path);
+        Random.InitState(21);
+        var verts = new List<Vector3>();
+        var trisA = new List<int>();
+        var trisB = new List<int>();
+        for (int s = 0; s < 230; s++)
+        {
+            float u = Random.value;
+            float x = Mathf.Lerp(-7.5f, 7.5f, u);
+            float top = 3.2f + 4.2f * Mathf.Pow(Mathf.Max(0f, Mathf.Sin(u * Mathf.PI)), 0.7f);
+            float z = Random.Range(-3.2f, 3.2f);
+            float len = Random.Range(2.2f, 5.4f);
+            int blobs = Mathf.RoundToInt(len / 0.19f);
+            var list = (s % 2 == 0) ? trisA : trisB;
+            for (int j = 0; j < blobs; j++)
+            {
+                float f = j / (float)blobs;
+                float r = Mathf.Lerp(0.15f, 0.05f, f) * Random.Range(0.75f, 1.25f);
+                var c = new Vector3(x + Mathf.Sin(j * 0.9f + s) * 0.12f, top - j * 0.19f, z + Mathf.Cos(j * 0.7f + s) * 0.12f);
+                AddBlob(c, r, verts, list);
+            }
+        }
+        var mesh = new Mesh { name = "WisteriaCurtain", indexFormat = IndexFormat.UInt32 };
+        mesh.SetVertices(verts);
+        mesh.subMeshCount = 2;
+        mesh.SetTriangles(trisA, 0);
+        mesh.SetTriangles(trisB, 1);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        AssetDatabase.CreateAsset(mesh, path);
+        return mesh;
+    }
+
+    static void BuildWisteriaArch()
+    {
+        var violet = Lit("Wisteria_Violet", "#8B5CF0", 0.35f, 0.3f);
+        var lilac = Lit("Wisteria_Lilac", "#C79BFF", 0.45f, 0.3f);
+        var wood = Lit("Wisteria_Wood", "#3A2540", 0f, 0.2f);
+        var root = new GameObject("WisteriaArch");
+        var curtain = new GameObject("Curtain");
+        curtain.transform.SetParent(root.transform, false);
+        curtain.AddComponent<MeshFilter>().sharedMesh = WisteriaMesh();
+        var mr = curtain.AddComponent<MeshRenderer>();
+        mr.sharedMaterials = new[] { violet, lilac };
+        mr.shadowCastingMode = ShadowCastingMode.Off;
+
+        // Posts and arching branch.
+        foreach (float side in new[] { -1f, 1f })
+        {
+            var post = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            post.name = "Post";
+            post.transform.SetParent(root.transform, false);
+            post.transform.localPosition = new Vector3(side * 7.6f, 1.8f, 0);
+            post.transform.localScale = new Vector3(0.35f, 1.8f, 0.35f);
+            Object.DestroyImmediate(post.GetComponent<Collider>());
+            post.GetComponent<Renderer>().sharedMaterial = wood;
+        }
+        for (int i = 0; i < 16; i++)
+        {
+            float u0 = i / 16f, u1 = (i + 1) / 16f;
+            Vector3 a = new Vector3(Mathf.Lerp(-7.5f, 7.5f, u0), 3.2f + 4.2f * Mathf.Pow(Mathf.Max(0f, Mathf.Sin(u0 * Mathf.PI)), 0.7f), 0);
+            Vector3 b = new Vector3(Mathf.Lerp(-7.5f, 7.5f, u1), 3.2f + 4.2f * Mathf.Pow(Mathf.Max(0f, Mathf.Sin(u1 * Mathf.PI)), 0.7f), 0);
+            var seg = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            seg.name = "Branch";
+            seg.transform.SetParent(root.transform, false);
+            seg.transform.localPosition = (a + b) / 2f;
+            seg.transform.localRotation = Quaternion.FromToRotation(Vector3.right, b - a);
+            seg.transform.localScale = new Vector3((b - a).magnitude * 1.05f, 0.32f, 0.32f);
+            Object.DestroyImmediate(seg.GetComponent<Collider>());
+            seg.GetComponent<Renderer>().sharedMaterial = wood;
+        }
+        PrefabUtility.SaveAsPrefabAsset(root, PrefabDir + "/WisteriaArch.prefab");
+        Object.DestroyImmediate(root);
+    }
+
+    static void BuildLightShaft()
+    {
+        var m = Custom("LightShaft", "Lucid/LightShaft");
+        m.SetColor("_Color", H("#FFD6E8"));
+        m.SetFloat("_Intensity", 0.42f);
+        EditorUtility.SetDirty(m);
+        var root = new GameObject("LightShaft");
+        var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        q.name = "Beam";
+        q.transform.SetParent(root.transform, false);
+        q.transform.localScale = new Vector3(5f, 26f, 1f);
+        q.transform.localPosition = new Vector3(0, -13f, 0);
+        Object.DestroyImmediate(q.GetComponent<Collider>());
+        q.GetComponent<Renderer>().sharedMaterial = m;
+        q.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
+        PrefabUtility.SaveAsPrefabAsset(root, PrefabDir + "/LightShaft.prefab");
+        Object.DestroyImmediate(root);
+    }
+
+    static void BuildPool()
+    {
+        var dream = Lit("Pool_Dream", "#3A2A70", 0f, 0.98f);
+        var night = Lit("Pool_Night", "#070204", 0.25f, 0.98f);
+        night.SetColor("_EmissionColor", H("#7A1208") * 0.25f);
+        var root = new GameObject("MirrorPool");
+        var p = GameObject.CreatePrimitive(PrimitiveType.Plane);
+        p.name = "Water";
+        p.transform.SetParent(root.transform, false);
+        p.transform.localPosition = new Vector3(0, 0.04f, 0);
+        p.transform.localScale = new Vector3(1.4f, 1f, 2.2f);
+        Object.DestroyImmediate(p.GetComponent<Collider>());
+        p.GetComponent<Renderer>().sharedMaterial = dream;
+        p.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
+        var sw = p.AddComponent<WorldMaterialSwap>(); sw.dream = dream; sw.nightmare = night;
+        PrefabUtility.SaveAsPrefabAsset(root, PrefabDir + "/MirrorPool.prefab");
+        Object.DestroyImmediate(root);
+    }
+
+    static GameObject Particles(string name, Color a, Color b, float rate, float life, float speed, float size, float gravity, Vector3 box)
+    {
+        var glow = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Combat/GlowParticle.mat");
+        var go = new GameObject(name);
+        var ps = go.AddComponent<ParticleSystem>();
+        var main = ps.main;
+        main.loop = true; main.playOnAwake = true;
+        main.startLifetime = life;
+        main.startSpeed = new ParticleSystem.MinMaxCurve(speed * 0.5f, speed);
+        main.startSize = new ParticleSystem.MinMaxCurve(size * 0.5f, size);
+        main.startColor = new ParticleSystem.MinMaxGradient(a, b);
+        main.gravityModifier = gravity;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.maxParticles = 700;
+        var em = ps.emission; em.rateOverTime = rate;
+        var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = box;
+        var noise = ps.noise; noise.enabled = true; noise.strength = 0.6f; noise.frequency = 0.25f; noise.scrollSpeed = 0.2f;
+        var col = ps.colorOverLifetime; col.enabled = true;
+        var g = new Gradient();
+        g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                  new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.2f), new GradientAlphaKey(1f, 0.8f), new GradientAlphaKey(0f, 1f) });
+        col.color = g;
+        var r = go.GetComponent<ParticleSystemRenderer>();
+        r.sharedMaterial = glow;
+        return go;
+    }
+
+    static void BuildAtmosphere()
+    {
+        var petals = Particles("DreamPetals", H("#FFB6DA"), H("#C79BFF"), 45f, 9f, 0.6f, 0.22f, -0.01f, new Vector3(60, 14, 60));
+        PrefabUtility.SaveAsPrefabAsset(petals, PrefabDir + "/DreamPetals.prefab");
+        Object.DestroyImmediate(petals);
+    }
+
+    public static void BuildPrefabs()
+    {
+        Ensure("Assets/Materials"); Ensure(MatDir); Ensure(MeshDir); Ensure("Assets/Prefabs"); Ensure(PrefabDir);
+        BuildWisteriaArch();
+        BuildLightShaft();
+        BuildPool();
+        BuildAtmosphere();
+        AssetDatabase.SaveAssets();
+    }
+
+    static GameObject Put(string prefab, Vector3 pos, Vector3 euler, Transform parent)
+    {
+        var p = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabDir + "/" + prefab + ".prefab");
+        var g = (GameObject)PrefabUtility.InstantiatePrefab(p);
+        g.transform.position = pos;
+        g.transform.eulerAngles = euler;
+        g.transform.SetParent(parent, true);
+        return g;
+    }
+
+    static void DreamOnly(GameObject g)
+    {
+        var o = g.AddComponent<WorldObject>();
+        o.visibleIn = WorldVisibility.DreamOnly;
+        o.affectColliders = false;
+    }
+
+    // Places the Dream dressing along the road (+Z).
+    public static void Populate(Transform root, Transform player)
+    {
+        Random.InitState(5);
+        // Wisteria tunnel over the first stretch of road.
+        for (float z = 12f; z <= 84f; z += 9f) DreamOnly(Put("WisteriaArch", new Vector3(0, 0, z), Vector3.zero, root));
+
+        // Light shafts slanting through the haze.
+        for (int i = 0; i < 9; i++)
+        {
+            float z = 8f + i * 11f;
+            float x = Random.Range(-14f, 14f);
+            DreamOnly(Put("LightShaft", new Vector3(x, 22f, z), new Vector3(0, Random.Range(-20f, 20f), Random.Range(-14f, 14f)), root));
+        }
+
+        // Mirror pools beside the road (they turn to black glass in Nightmare).
+        float[] pz = { 20f, 46f, 72f, 98f };
+        for (int i = 0; i < pz.Length; i++)
+            Put("MirrorPool", new Vector3((i % 2 == 0 ? -1f : 1f) * 17f, 0, pz[i]), new Vector3(0, Random.Range(0f, 40f), 0), root);
+
+        // Drifting petals around the player.
+        var petals = Put("DreamPetals", player.position + Vector3.up * 5f, Vector3.zero, player);
+        DreamOnly(petals);
+    }
+}

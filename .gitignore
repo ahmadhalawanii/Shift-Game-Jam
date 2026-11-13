@@ -1,0 +1,33 @@
+# Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+*.csproj
+*.sln
+*.suo
+*.user
+*.pidb
+*.pdb
+*.mdb
+*.apk
+*.unitypackage
+sysinfo.txt
+crashlytics-build.properties
+# IDE / OS
+.vs/
+.idea/
+.vscode/
+.DS_Store
+# Never commit
+*.env
+**/SHIFT*Opening*Deck*.pdf
+.claude/settings.local.json
+
+# Unity screenshots from tooling
+Assets/Screenshots/
+Assets/Screenshots.meta

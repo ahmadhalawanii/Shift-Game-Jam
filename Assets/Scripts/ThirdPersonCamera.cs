@@ -42,6 +42,7 @@ public class ThirdPersonCamera : MonoBehaviour
 
     void LateUpdate()
     {
+        if (EclipseEncounter.Finished) return;
         if (target == null) return;
         var mouse = Mouse.current;
         if (mouse != null)

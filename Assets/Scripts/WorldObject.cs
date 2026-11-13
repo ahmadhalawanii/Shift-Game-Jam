@@ -22,11 +22,11 @@ public class WorldObject : MonoBehaviour
 
     void OnEnable()
     {
-        WorldState.Changed += Apply;
+        WorldState.VisualChanged += Apply;
         Apply(WorldState.Instance != null ? WorldState.Instance.Current : World.Dream);
     }
 
-    void OnDisable() { WorldState.Changed -= Apply; }
+    void OnDisable() { WorldState.VisualChanged -= Apply; }
 
     void Apply(World w)
     {

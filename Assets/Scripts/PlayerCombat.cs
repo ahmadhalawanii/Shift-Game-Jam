@@ -14,6 +14,8 @@ public class PlayerCombat : MonoBehaviour
     [Header("Dream shield")]
     public float shieldRadius = 2.4f;
     public float maxPower = 10f;
+    public float burstRadius = 42f;
+    public float burstDamage = 45f;
 
     public float Power { get; private set; }
     public bool ShieldUp { get; private set; }
@@ -45,6 +47,8 @@ public class PlayerCombat : MonoBehaviour
 
     void Update()
     {
+        if (EclipseEncounter.Finished) { ShieldUp = false; return; }
+        if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame) TryBurst();
         var mouse = Mouse.current;
         bool held = mouse != null && mouse.leftButton.isPressed && !(pc != null && pc.Recalling);
         World w = WorldState.Instance != null ? WorldState.Instance.Current : World.Dream;
@@ -119,6 +123,29 @@ public class PlayerCombat : MonoBehaviour
 
         Fx.Burst(origin, new Color(1f, 0.75f, 0.3f), 4);
         ThirdPersonCamera.Shake(0.012f);
+    }
+
+    public void AddPower(float amount) { Power = Mathf.Clamp(Power + amount, 0f, maxPower); }
+
+    public bool TryBurst()
+    {
+        if (EclipseEncounter.Finished || (pc != null && pc.Recalling)) return false;
+        if (WorldState.Instance == null || WorldState.Instance.Current != World.Nightmare || Power < maxPower)
+        {
+            if (EclipseEncounter.Instance != null) EclipseEncounter.Instance.Tell("Burst needs full Power and Nightmare.");
+            return false;
+        }
+        Power = 0f;
+        Vector3 center = transform.position;
+        EnemyBullet.Clear(center, burstRadius);
+        foreach (var enemy in Enemy.All.ToArray())
+            if (enemy != null && (enemy.transform.position - center).sqrMagnitude <= burstRadius * burstRadius)
+                enemy.TakeDamage(burstDamage, enemy.transform.position);
+        CombatPulse.Spawn(center + Vector3.up * 0.25f, burstRadius, new Color(0.7f, 0.3f, 1.5f));
+        Fx.Burst(center + Vector3.up, new Color(0.65f, 0.3f, 1f), 45);
+        ThirdPersonCamera.Shake(0.3f);
+        if (EclipseEncounter.Instance != null) EclipseEncounter.Instance.Tell("MEMORY BURST");
+        return true;
     }
 
     public void OnAbsorb(Vector3 where)

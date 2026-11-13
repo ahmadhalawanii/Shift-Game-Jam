@@ -23,6 +23,7 @@ public abstract class Enemy : MonoBehaviour
 
     public virtual void TakeDamage(float damage, Vector3 hitPoint)
     {
+        if (EclipseEncounter.Finished || health <= 0f) return;
         health -= damage;
         Fx.Burst(hitPoint, new Color(1f, 0.8f, 0.4f), 6);
         if (health <= 0f) Die();

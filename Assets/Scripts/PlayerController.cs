@@ -64,9 +64,10 @@ public class PlayerController : MonoBehaviour
         checkpoint = transform.position;
     }
 
-    // Enemy hit. Dashing gives brief invulnerability. Running out of memory flows you back and restores it (no fail state yet).
+    // Enemy hit. Dashing gives brief invulnerability; empty memory ends the encounter.
     public void Damage(float amount)
     {
+        if (EclipseEncounter.Finished) return;
         if (recalling) return;
         if (dashLeft > 0f || Time.time - lastDashEnd < 0.12f) return;
         if (Time.time < invulnUntil) return;
@@ -74,9 +75,14 @@ public class PlayerController : MonoBehaviour
         LastHitTime = Time.time;
         if (avatar != null)
         {
-            avatar.memory = Mathf.Max(0.05f, avatar.memory - amount);
+            avatar.memory = Mathf.Max(0f, avatar.memory - amount);
             avatar.Scatter(0.2f);
-            if (avatar.memory <= 0.06f) { avatar.memory = 1f; BeginRecall(0f); }
+            if (avatar.memory <= 0f && EclipseEncounter.Instance != null)
+            {
+                avatar.memory = 0f;
+                EclipseEncounter.Instance.End(false);
+                return;
+            }
         }
         ThirdPersonCamera.Shake(0.25f);
         GameFeel.HitStop(0.04f);
@@ -135,6 +141,7 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        if (EclipseEncounter.Finished) return;
         if (recalling) { UpdateRecall(); return; }
         var kb = Keyboard.current;
         var mouse = Mouse.current;

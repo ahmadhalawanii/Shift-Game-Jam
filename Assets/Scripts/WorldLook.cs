@@ -29,6 +29,12 @@ public class WorldLook : MonoBehaviour
     public Volume dreamVolume;
     public Volume nightmareVolume;
 
+    [Header("Transition accent")]
+    [Range(0f, 2f)] public float skyPulseStrength = 0.75f;
+    [Range(0f, 1f)] public float lightPulseStrength = 0.18f;
+    public Color dreamTransitionColor = new Color(1f, 0.72f, 0.92f);
+    public Color nightmareTransitionColor = new Color(1f, 0.28f, 0.06f);
+
     Material runtimeSky;
     float lastEnv = -1f;
 
@@ -45,15 +51,31 @@ public class WorldLook : MonoBehaviour
 
     public void Apply(float mix)
     {
-        if (runtimeSky != null) runtimeSky.SetFloat("_Mix", mix);
+        Apply(mix, 0f, 0f);
+    }
+
+    public void Apply(float mix, float transitionPulse, float transitionDirection)
+    {
+        float pulse = Mathf.Clamp01(transitionPulse);
+        Color accent = transitionDirection >= 0f ? nightmareTransitionColor : dreamTransitionColor;
+        if (runtimeSky != null)
+        {
+            runtimeSky.SetFloat("_Mix", mix);
+            runtimeSky.SetFloat("_TransitionPulse", pulse * skyPulseStrength);
+            runtimeSky.SetFloat("_TransitionDirection", transitionDirection);
+            runtimeSky.SetColor("_TransitionColor", accent);
+        }
         if (Mathf.Abs(mix - lastEnv) > 0.2f || (mix == 0f && lastEnv != 0f) || (mix == 1f && lastEnv != 1f)) { lastEnv = mix; DynamicGI.UpdateEnvironment(); }
-        RenderSettings.fogColor = Color.Lerp(fogDream, fogNightmare, mix);
+        Color baseFog = Color.Lerp(fogDream, fogNightmare, mix);
+        RenderSettings.fogColor = Color.Lerp(baseFog, accent, pulse * 0.12f);
         RenderSettings.fogEndDistance = Mathf.Lerp(fogEndDream, fogEndNightmare, mix);
-        RenderSettings.ambientLight = Color.Lerp(ambientDream, ambientNightmare, mix);
+        Color baseAmbient = Color.Lerp(ambientDream, ambientNightmare, mix);
+        RenderSettings.ambientLight = Color.Lerp(baseAmbient, accent, pulse * 0.08f);
         if (sun != null)
         {
-            sun.color = Color.Lerp(sunDream, sunNightmare, mix);
-            sun.intensity = Mathf.Lerp(sunIntensityDream, sunIntensityNightmare, mix);
+            Color baseSun = Color.Lerp(sunDream, sunNightmare, mix);
+            sun.color = Color.Lerp(baseSun, accent, pulse * 0.24f);
+            sun.intensity = Mathf.Lerp(sunIntensityDream, sunIntensityNightmare, mix) * (1f + pulse * lightPulseStrength);
         }
         if (dreamVolume != null) dreamVolume.weight = 1f - mix;
         if (nightmareVolume != null) nightmareVolume.weight = mix;

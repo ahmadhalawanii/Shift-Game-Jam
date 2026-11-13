@@ -26,11 +26,14 @@ Material:
     m_Ints: []
     m_Floats:
     - _Mix: 0
+    - _TransitionDirection: 1
+    - _TransitionPulse: 0
     - _VoidSize: 0.16
     m_Colors:
     - _Horizon: {r: 1, g: 0.6901961, b: 0.5411765, a: 1}
     - _Pink: {r: 1, g: 0.37254903, b: 0.65882355, a: 1}
     - _Top: {r: 0.08627451, g: 0.14509805, b: 0.56078434, a: 1}
+    - _TransitionColor: {r: 1, g: 0.29999998, b: 0.079999976, a: 1}
     - _Violet: {r: 0.5411765, g: 0.30980393, b: 0.8784314, a: 1}
     - _VoidDir: {r: 0.28, g: 0.34, b: 0.9, a: 0}
   m_BuildTextureStacks: []

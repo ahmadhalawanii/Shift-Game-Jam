@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEditor;
+using static BuildKit;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -11,39 +12,12 @@ public static class DreamBuilder
     const string MatDir = "Assets/Materials/Dream";
     const string MeshDir = "Assets/Meshes";
 
-    static void Ensure(string path)
-    {
-        if (AssetDatabase.IsValidFolder(path)) return;
-        int i = path.LastIndexOf('/');
-        AssetDatabase.CreateFolder(path.Substring(0, i), path.Substring(i + 1));
-    }
+    static Material Lit(string name, string hex, float emission, float smooth) { return BuildKit.Lit(MatDir, name, hex, emission, smooth); }
 
-    static Color H(string hex) { Color c; ColorUtility.TryParseHtmlString(hex, out c); return c; }
+    static Material Custom(string name, string shader) { return GetOrCreate(MatDir, name, shader); }
 
-    static Material Lit(string name, string hex, float emission, float smooth)
-    {
-        string p = MatDir + "/" + name + ".mat";
-        var m = AssetDatabase.LoadAssetAtPath<Material>(p);
-        if (m == null) { m = new Material(Shader.Find("Universal Render Pipeline/Lit")); AssetDatabase.CreateAsset(m, p); }
-        m.SetColor("_BaseColor", H(hex));
-        m.SetFloat("_Smoothness", smooth);
-        if (emission > 0f)
-        {
-            m.EnableKeyword("_EMISSION");
-            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
-            m.SetColor("_EmissionColor", H(hex) * emission);
-        }
-        EditorUtility.SetDirty(m);
-        return m;
-    }
-
-    static Material Custom(string name, string shader)
-    {
-        string p = MatDir + "/" + name + ".mat";
-        var m = AssetDatabase.LoadAssetAtPath<Material>(p);
-        if (m == null) { m = new Material(Shader.Find(shader)); AssetDatabase.CreateAsset(m, p); }
-        return m;
-    }
+    // Height of the wisteria arch at position u (0..1) across the road.
+    static float ArchY(float u) { return 3.2f + 4.2f * Mathf.Pow(Mathf.Max(0f, Mathf.Sin(u * Mathf.PI)), 0.7f); }
 
     // ---- procedural wisteria curtain: hanging strands of small blossoms across an arch ----
 
@@ -89,7 +63,7 @@ public static class DreamBuilder
         {
             float u = Random.value;
             float x = Mathf.Lerp(-7.5f, 7.5f, u);
-            float top = 3.2f + 4.2f * Mathf.Pow(Mathf.Max(0f, Mathf.Sin(u * Mathf.PI)), 0.7f);
+            float top = ArchY(u);
             float z = Random.Range(-3.2f, 3.2f);
             float len = Random.Range(2.2f, 5.4f);
             int blobs = Mathf.RoundToInt(len / 0.19f);
@@ -140,8 +114,8 @@ public static class DreamBuilder
         for (int i = 0; i < 16; i++)
         {
             float u0 = i / 16f, u1 = (i + 1) / 16f;
-            Vector3 a = new Vector3(Mathf.Lerp(-7.5f, 7.5f, u0), 3.2f + 4.2f * Mathf.Pow(Mathf.Max(0f, Mathf.Sin(u0 * Mathf.PI)), 0.7f), 0);
-            Vector3 b = new Vector3(Mathf.Lerp(-7.5f, 7.5f, u1), 3.2f + 4.2f * Mathf.Pow(Mathf.Max(0f, Mathf.Sin(u1 * Mathf.PI)), 0.7f), 0);
+            Vector3 a = new Vector3(Mathf.Lerp(-7.5f, 7.5f, u0), ArchY(u0), 0);
+            Vector3 b = new Vector3(Mathf.Lerp(-7.5f, 7.5f, u1), ArchY(u1), 0);
             var seg = GameObject.CreatePrimitive(PrimitiveType.Cube);
             seg.name = "Branch";
             seg.transform.SetParent(root.transform, false);
@@ -251,7 +225,6 @@ public static class DreamBuilder
     {
         var o = g.AddComponent<WorldObject>();
         o.visibleIn = WorldVisibility.DreamOnly;
-        o.affectColliders = false;
     }
 
     // Places the Dream dressing along the road (+Z).

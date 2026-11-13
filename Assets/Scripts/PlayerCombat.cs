@@ -19,7 +19,6 @@ public class PlayerCombat : MonoBehaviour
     public bool ShieldUp { get; private set; }
     public bool Firing { get { return Time.time - lastShot < 0.18f; } }
     public float Kick { get; private set; }
-    public float ShieldRadius { get { return shieldRadius; } }
 
     PlayerController pc;
     MemoryAvatar avatar;
@@ -47,7 +46,7 @@ public class PlayerCombat : MonoBehaviour
     {
         var mouse = Mouse.current;
         bool held = mouse != null && mouse.leftButton.isPressed && !(pc != null && pc.Recalling);
-        World w = WorldState.Instance != null ? WorldState.Instance.Current : World.Dream;
+        World w = WorldState.CurrentOrDream;
 
         if (w == World.Nightmare)
         {
@@ -121,7 +120,7 @@ public class PlayerCombat : MonoBehaviour
         ThirdPersonCamera.Shake(0.012f);
     }
 
-    public void OnAbsorb(Vector3 where)
+    public void OnAbsorb()
     {
         Power = Mathf.Min(maxPower, Power + 1f);
         if (avatar != null)

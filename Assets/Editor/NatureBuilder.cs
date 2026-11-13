@@ -1,4 +1,5 @@
 using UnityEditor;
+using static BuildKit;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -9,16 +10,8 @@ public static class NatureBuilder
     const string Out = "Assets/Prefabs/Nature";
     const string MatOut = "Assets/Materials/Nature";
 
-    static readonly string[] Plants = { "celandine_01", "dandelion_01", "flower_gazania", "flower_ursinia", "flower_heliophila", "grass_medium_01", "moss_01" };
-    static readonly string[] Solids = { "boulder_01", "rock_face_01", "dead_tree_trunk" };
+        static readonly string[] Solids = { "boulder_01", "rock_face_01", "dead_tree_trunk" };
     static readonly string[] Flowers = { "celandine_01", "dandelion_01", "flower_gazania", "flower_ursinia", "flower_heliophila" };
-
-    static void Ensure(string path)
-    {
-        if (AssetDatabase.IsValidFolder(path)) return;
-        int i = path.LastIndexOf('/');
-        AssetDatabase.CreateFolder(path.Substring(0, i), path.Substring(i + 1));
-    }
 
     static Texture2D Tex(string path) { return AssetDatabase.LoadAssetAtPath<Texture2D>(path); }
 
@@ -55,7 +48,8 @@ public static class NatureBuilder
     {
         Ensure("Assets/Prefabs"); Ensure(Out); Ensure("Assets/Materials"); Ensure(MatOut);
         BuildMaterials();
-        foreach (var n in Plants) MakePrefab(n, true);
+        foreach (var n in Flowers) MakePrefab(n, true);
+        MakePrefab("grass_medium_01", true);
         foreach (var n in Solids) MakePrefab(n, false);
         AssetDatabase.SaveAssets();
     }
@@ -138,7 +132,6 @@ public static class NatureBuilder
         var g = new GameObject(name);
         var o = g.AddComponent<WorldObject>();
         o.visibleIn = w;
-        o.affectColliders = false;
         return g;
     }
 
@@ -148,7 +141,7 @@ public static class NatureBuilder
         Random.InitState(1337);
         var meadow = Group("Meadow_DreamOnly", WorldVisibility.DreamOnly);
         var wood = Group("DeadWood_NightmareOnly", WorldVisibility.NightmareOnly);
-        var rocks = Group("Rocks", WorldVisibility.Both);
+        var rocks = new GameObject("Rocks");
 
         var centers = new Vector3[16];
         for (int i = 0; i < centers.Length; i++)

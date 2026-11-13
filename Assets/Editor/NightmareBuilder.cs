@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEditor;
+using static BuildKit;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -11,31 +12,7 @@ public static class NightmareBuilder
     const string MatDir = "Assets/Materials/Nightmare";
     const string MeshDir = "Assets/Meshes";
 
-    static void Ensure(string path)
-    {
-        if (AssetDatabase.IsValidFolder(path)) return;
-        int i = path.LastIndexOf('/');
-        AssetDatabase.CreateFolder(path.Substring(0, i), path.Substring(i + 1));
-    }
-
-    static Color H(string hex) { Color c; ColorUtility.TryParseHtmlString(hex, out c); return c; }
-
-    static Material Lit(string name, string hex, float emission, float smooth)
-    {
-        string p = MatDir + "/" + name + ".mat";
-        var m = AssetDatabase.LoadAssetAtPath<Material>(p);
-        if (m == null) { m = new Material(Shader.Find("Universal Render Pipeline/Lit")); AssetDatabase.CreateAsset(m, p); }
-        m.SetColor("_BaseColor", H(hex));
-        m.SetFloat("_Smoothness", smooth);
-        if (emission > 0f)
-        {
-            m.EnableKeyword("_EMISSION");
-            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
-            m.SetColor("_EmissionColor", H(hex) * emission);
-        }
-        EditorUtility.SetDirty(m);
-        return m;
-    }
+    static Material Lit(string name, string hex, float emission, float smooth) { return BuildKit.Lit(MatDir, name, hex, emission, smooth); }
 
     // A curling tube that tapers to a point.
     static Mesh Tube(string name, int seed)
@@ -187,7 +164,6 @@ public static class NightmareBuilder
     {
         var o = g.AddComponent<WorldObject>();
         o.visibleIn = WorldVisibility.NightmareOnly;
-        o.affectColliders = false;
     }
 
     public static void Populate(Transform root, Transform player)

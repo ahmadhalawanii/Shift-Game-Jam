@@ -23,9 +23,8 @@ public class WispEnemy : Enemy
     float baseIntensity;
     float ringOffset;
 
-    protected override void Start()
+    void Start()
     {
-        base.Start();
         glow = GetComponentInChildren<Light>();
         baseIntensity = glow != null ? glow.intensity : 2f;
         timer = Random.Range(0.6f, 1.6f);
@@ -39,7 +38,7 @@ public class WispEnemy : Enemy
         to.y = 0f;
         float d = to.magnitude;
         if (d > activateDistance) return;
-        World w = WorldState.Instance != null ? WorldState.Instance.Current : World.Dream;
+        World w = WorldState.CurrentOrDream;
 
         Vector3 dir = d > 0.01f ? to / d : transform.forward;
         float err = Mathf.Clamp(d - preferredDistance, -1f, 1f);

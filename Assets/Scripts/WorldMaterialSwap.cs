@@ -13,7 +13,7 @@ public class WorldMaterialSwap : MonoBehaviour
     void OnEnable()
     {
         WorldState.Changed += Apply;
-        Apply(WorldState.Instance != null ? WorldState.Instance.Current : World.Dream);
+        Apply(WorldState.CurrentOrDream);
     }
 
     void OnDisable() { WorldState.Changed -= Apply; }

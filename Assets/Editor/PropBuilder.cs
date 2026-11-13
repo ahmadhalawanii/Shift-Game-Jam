@@ -1,4 +1,5 @@
 using UnityEditor;
+using static BuildKit;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -23,23 +24,11 @@ public static class PropBuilder
         DreamBuilder.BuildPrefabs();
         NightmareBuilder.BuildPrefabs();
         EnsureFogFeature();
-        // Props that did not fit the game were removed.
-        foreach (var old in new[] { "ArcadeCabinet", "GasStationCanopy", "TelephonePole", "Echo", "FlowRing", "MemoryGate", "PressurePlate", "CloudPad", "ObsidianSlab", "ThornCluster", "MirrorDoorway" })
-            AssetDatabase.DeleteAsset(PrefabDir + "/" + old + ".prefab");
         BuildLamp(); BuildShadowFigure(); BuildRoad(); BuildPillar();
         MemoryBuilder.Build();
         AssetDatabase.SaveAssets();
         BuildScene();
     }
-
-    static void Ensure(string path)
-    {
-        if (AssetDatabase.IsValidFolder(path)) return;
-        int i = path.LastIndexOf('/');
-        AssetDatabase.CreateFolder(path.Substring(0, i), path.Substring(i + 1));
-    }
-
-    static Color H(string hex) { Color c; ColorUtility.TryParseHtmlString(hex, out c); return c; }
 
     static Material Mat(string name, string hex, float emission = 0f, float smooth = 0.3f, string shader = "Universal Render Pipeline/Lit")
     {
@@ -243,12 +232,6 @@ public static class PropBuilder
         return v;
     }
 
-    static void WorldOnly(GameObject g, WorldVisibility w)
-    {
-        var o = g.AddComponent<WorldObject>();
-        o.visibleIn = w;
-    }
-
     static void BuildScene()
     {
         var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
@@ -270,7 +253,7 @@ public static class PropBuilder
             Place("StreetLamp", new Vector3(left ? -5.5f : 5.5f, 0, -5 + i * 16), new Vector3(0, left ? 0 : 180, 0));
         }
         NatureBuilder.Populate();
-        WorldOnly(Place("ShadowFigure", new Vector3(-26, 0, 70), new Vector3(0, 160, 0)), WorldVisibility.Both);
+        Place("ShadowFigure", new Vector3(-26, 0, 70), new Vector3(0, 160, 0));
         Place("RuinPillar", new Vector3(-16, 0, 34), Vector3.zero);
         Place("RuinPillar", new Vector3(18, 0, 62), new Vector3(0, 40, 0));
 

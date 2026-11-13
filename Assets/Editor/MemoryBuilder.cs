@@ -1,4 +1,5 @@
 using UnityEditor;
+using static BuildKit;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -7,13 +8,6 @@ using UnityEngine.Rendering;
 public static class MemoryBuilder
 {
     const int Count = 3600;
-
-    static void Ensure(string path)
-    {
-        if (AssetDatabase.IsValidFolder(path)) return;
-        int i = path.LastIndexOf('/');
-        AssetDatabase.CreateFolder(path.Substring(0, i), path.Substring(i + 1));
-    }
 
     static int k;
     static Vector3[] centers;

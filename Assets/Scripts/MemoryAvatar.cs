@@ -103,7 +103,7 @@ public class MemoryAvatar : MonoBehaviour
         history.Add(new Sample { t = t, pos = basePos, yaw = yaw });
         while (history.Count > 240) history.RemoveAt(0);
 
-        float mix = WorldState.Instance != null ? WorldState.Instance.Mix : 0f;
+        float mix = WorldState.MixOrZero;
         float scatter = Time.time < scatterUntil ? Mathf.Sin((scatterUntil - Time.time) / scatterLength * Mathf.PI) : 0f;
         float sharp = Time.time < sharpenUntil ? 0.15f : 0f;
         float strength = Mathf.Clamp01(memory + sharp - scatter * 0.9f) * 1.02f;

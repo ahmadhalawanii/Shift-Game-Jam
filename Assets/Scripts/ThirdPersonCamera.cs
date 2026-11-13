@@ -28,6 +28,7 @@ public class ThirdPersonCamera : MonoBehaviour
     PlayerController player;
 
     void Awake() { Instance = this; }
+    void OnDestroy() { if (Instance == this) Instance = null; }
 
     void Start()
     {

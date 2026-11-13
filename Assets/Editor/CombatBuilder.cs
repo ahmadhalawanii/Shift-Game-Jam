@@ -1,4 +1,5 @@
 using UnityEditor;
+using static BuildKit;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -7,15 +8,6 @@ public static class CombatBuilder
 {
     const string Out = "Assets/Resources/Combat";
     const string MatDir = "Assets/Materials/Combat";
-
-    static void Ensure(string path)
-    {
-        if (AssetDatabase.IsValidFolder(path)) return;
-        int i = path.LastIndexOf('/');
-        AssetDatabase.CreateFolder(path.Substring(0, i), path.Substring(i + 1));
-    }
-
-    static Color H(string hex) { Color c; ColorUtility.TryParseHtmlString(hex, out c); return c; }
 
     static Material Get(string name, string shaderName)
     {
@@ -59,7 +51,7 @@ public static class CombatBuilder
         Object.DestroyImmediate(g);
     }
 
-    static TrailRenderer Trail(GameObject g, Material trailMat, float time, float width, Color c)
+    static void Trail(GameObject g, Material trailMat, float time, float width, Color c)
     {
         var tr = g.AddComponent<TrailRenderer>();
         tr.time = time;
@@ -72,7 +64,6 @@ public static class CombatBuilder
         grad.SetKeys(new[] { new GradientColorKey(c, 0f), new GradientColorKey(c, 1f) },
                      new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) });
         tr.colorGradient = grad;
-        return tr;
     }
 
     public static void Build()
@@ -136,14 +127,16 @@ public static class CombatBuilder
         var dreamMat = Lit("Combat_WispDream", "#FF6FC0", 0.9f);
         var nightMat = Lit("Combat_WispNight", "#FF3A18", 1.3f);
         var wisp = new GameObject("Wisp");
-        var core = Prim(PrimitiveType.Sphere, "Core", wisp.transform, Vector3.zero, new Vector3(0.9f, 0.9f, 0.9f), dreamMat);
-        var sw = core.AddComponent<WorldMaterialSwap>(); sw.dream = dreamMat; sw.nightmare = nightMat;
-        var ringA = Prim(PrimitiveType.Cylinder, "RingA", wisp.transform, Vector3.zero, new Vector3(1.9f, 0.015f, 1.9f), dreamMat);
-        ringA.AddComponent<Spin>().degreesPerSecond = new Vector3(40, 60, 0);
-        var swa = ringA.AddComponent<WorldMaterialSwap>(); swa.dream = dreamMat; swa.nightmare = nightMat;
-        var ringB = Prim(PrimitiveType.Cylinder, "RingB", wisp.transform, Vector3.zero, new Vector3(1.5f, 0.015f, 1.5f), dreamMat);
-        ringB.AddComponent<Spin>().degreesPerSecond = new Vector3(-70, 0, 50);
-        var swb = ringB.AddComponent<WorldMaterialSwap>(); swb.dream = dreamMat; swb.nightmare = nightMat;
+        Prim(PrimitiveType.Sphere, "Core", wisp.transform, Vector3.zero, new Vector3(0.9f, 0.9f, 0.9f), dreamMat);
+        var ringSizes = new[] { 1.9f, 1.5f };
+        var ringSpins = new[] { new Vector3(40, 60, 0), new Vector3(-70, 0, 50) };
+        for (int i = 0; i < 2; i++)
+        {
+            var ring = Prim(PrimitiveType.Cylinder, "Ring" + i, wisp.transform, Vector3.zero, new Vector3(ringSizes[i], 0.015f, ringSizes[i]), dreamMat);
+            ring.AddComponent<Spin>().degreesPerSecond = ringSpins[i];
+        }
+        var swap = wisp.AddComponent<WorldMaterialSwap>(); // swaps every child renderer
+        swap.dream = dreamMat; swap.nightmare = nightMat;
         var lg = new GameObject("Glow");
         lg.transform.SetParent(wisp.transform, false);
         var l = lg.AddComponent<Light>();

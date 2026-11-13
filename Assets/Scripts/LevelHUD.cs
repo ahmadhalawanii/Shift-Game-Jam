@@ -1,22 +1,16 @@
 using UnityEngine;
 
-// Minimal placeholder HUD: world, memory, echo status, controls and a hint for the current stretch of the level.
+// Minimal placeholder HUD: world, memory, Power, enemy count, controls and a hint.
 public class LevelHUD : MonoBehaviour
 {
-    public static LevelHUD Instance { get; private set; }
-
-    public Transform player;
     public MemoryAvatar avatar;
     public PlayerCombat combat;
 
     GUIStyle big, small;
 
-    void Awake() { Instance = this; }
-    void OnDestroy() { if (Instance == this) Instance = null; }
-
     string Hint()
     {
-        World w = WorldState.Instance != null ? WorldState.Instance.Current : World.Dream;
+        World w = WorldState.CurrentOrDream;
         return w == World.Nightmare ? "NIGHTMARE: hold left mouse to fire. Dash (Space) to dodge. Shift to return to Dream."
                                     : "DREAM: hold left mouse to shield and absorb orbs. Shift to enter Nightmare and shoot.";
     }
@@ -29,7 +23,7 @@ public class LevelHUD : MonoBehaviour
             small = new GUIStyle(GUI.skin.label) { fontSize = 15 };
             big.normal.textColor = Color.white; small.normal.textColor = Color.white;
         }
-        string world = WorldState.Instance != null ? WorldState.Instance.Current.ToString().ToUpper() : "";
+        string world = WorldState.CurrentOrDream.ToString().ToUpper();
         int mem = avatar != null ? Mathf.RoundToInt(avatar.memory * 100f) : 100;
         GUI.Label(new Rect(20, 16, 500, 32), world, big);
         GUI.Label(new Rect(20, 46, 500, 24), "Memory " + mem + "%", small);

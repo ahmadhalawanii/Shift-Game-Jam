@@ -10,16 +10,10 @@ public abstract class Enemy : MonoBehaviour
     public float radius = 0.9f;
     public Color deathColor = new Color(1f, 0.6f, 0.9f);
 
-    protected Transform player;
+    protected Transform player { get { return PlayerController.Instance != null ? PlayerController.Instance.transform : null; } }
 
     protected virtual void OnEnable() { All.Add(this); }
     protected virtual void OnDisable() { All.Remove(this); }
-
-    protected virtual void Start()
-    {
-        var pc = Object.FindFirstObjectByType<PlayerController>();
-        if (pc != null) player = pc.transform;
-    }
 
     public virtual void TakeDamage(float damage, Vector3 hitPoint)
     {

@@ -13,6 +13,7 @@ public static class CombatAssets
         if (!cache.TryGetValue(name, out g) || g == null)
         {
             g = Resources.Load<GameObject>("Combat/" + name);
+            if (g == null) Debug.LogError("Missing prefab Resources/Combat/" + name + ". Run menu Lucid > Build Props And Test Scene.");
             cache[name] = g;
         }
         return g;
@@ -33,6 +34,7 @@ public static class Fx
         var go = CombatAssets.Spawn("GlowBurst", pos, Quaternion.identity);
         if (go == null) return;
         var ps = go.GetComponent<ParticleSystem>();
+        if (ps == null) return;
         var main = ps.main;
         main.startColor = color;
         var em = ps.emission;

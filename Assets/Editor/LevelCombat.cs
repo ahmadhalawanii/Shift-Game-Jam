@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-// Level 1 as a combat level: waves of wisps along the road, then (later) the boss arena.
+// Level 1 as a combat level: waves of wisps along the road.
 public static class LevelCombat
 {
     const string WispPath = "Assets/Resources/Combat/Wisp.prefab";
@@ -28,7 +28,6 @@ public static class LevelCombat
         Wisps(root, 98f, -14f, -7f, 0f, 7f, 14f);
 
         var hud = new GameObject("LevelHUD").AddComponent<LevelHUD>();
-        hud.player = player;
         hud.avatar = player.GetComponentInChildren<MemoryAvatar>();
         hud.combat = player.GetComponent<PlayerCombat>();
     }

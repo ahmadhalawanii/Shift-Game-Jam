@@ -197,6 +197,6 @@ public class LevelHUD : MonoBehaviour
         if (tpc != null && tpc.LockWeight > 0f) GUI.Label(new Rect(20, 172, 600, 24), tpc.LockDebug, small);
 #endif
         GUI.Label(new Rect(20, Screen.height - 64, Screen.width - 40, 24), Hint(), small);
-        GUI.Label(new Rect(20, Screen.height - 36, Screen.width - 40, 24), "WASD Move   Shift Dash   Space Jump   LMB Strike   RMB Charge   Q Shift World   E Weave   Tab Focus", small);
+        GUI.Label(new Rect(20, Screen.height - 36, Screen.width - 40, 24), "WASD Move   Shift Dash   Space Jump   LMB Strike   RMB Charge   Q Shift World   E Weave", small);
     }
 }

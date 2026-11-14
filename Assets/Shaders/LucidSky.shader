@@ -9,6 +9,9 @@ Shader "Lucid/DreamSky"
         _VoidDir ("Void Direction", Vector) = (0.45, 0.5, 0.75, 0)
         _VoidSize ("Void Size (radians)", Range(0.02, 0.8)) = 0.12
         _Mix ("Nightmare Mix", Range(0, 1)) = 0
+        _TransitionPulse ("Transition Pulse", Range(0, 2)) = 0
+        _TransitionDirection ("Transition Direction", Range(-1, 1)) = 1
+        _TransitionColor ("Transition Color", Color) = (1, 0.3, 0.08, 1)
     }
     SubShader
     {
@@ -22,8 +25,9 @@ Shader "Lucid/DreamSky"
             #include "UnityCG.cginc"
 
             fixed4 _Horizon, _Pink, _Violet, _Top;
+            fixed4 _TransitionColor;
             float4 _VoidDir;
-            float _VoidSize, _Mix;
+            float _VoidSize, _Mix, _TransitionPulse, _TransitionDirection;
 
             struct v2f { float4 pos : SV_POSITION; float3 dir : TEXCOORD0; };
 
@@ -116,7 +120,19 @@ Shader "Lucid/DreamSky"
                 n = lerp(n, float3(0, 0, 0), disc);
                 n = lerp(n, float3(0.04, 0.01, 0.01), saturate(-h * 2.5));
 
-                return fixed4(lerp(dream, n, _Mix), 1.0);
+                float3 result = lerp(dream, n, _Mix);
+
+                // During a swap, a soft energy front expands from (or collapses into) the
+                // black sun. It gives the crossfade a readable shape without a full-screen flash.
+                float travel = _TransitionDirection >= 0.0 ? _TransitionPulse : 1.0 - _TransitionPulse;
+                float ringRadius = lerp(_VoidSize * 1.15, 2.4, saturate(travel));
+                float ringWidth = lerp(0.18, 0.055, saturate(_TransitionPulse));
+                float ring = 1.0 - smoothstep(ringWidth, ringWidth * 2.4, abs(r - ringRadius));
+                float veil = exp(-r * 1.25) * _TransitionPulse;
+                result += _TransitionColor.rgb * (ring * 0.72 + veil * 0.13) * _TransitionPulse;
+                result = lerp(result, result * float3(1.08, 0.96, 1.12), ring * 0.22);
+
+                return fixed4(result, 1.0);
             }
             ENDCG
         }

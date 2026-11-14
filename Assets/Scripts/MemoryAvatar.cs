@@ -82,7 +82,7 @@ public class MemoryAvatar : MonoBehaviour
         Vector3 v = cc != null ? cc.velocity : Vector3.zero;
         v.y = 0f;
         float speed = v.magnitude;
-        if (speed > 0.5f && combat != null && !combat.Firing && !combat.ShieldUp) yaw = Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg;
+        if (speed > 0.5f && combat != null && !combat.Firing && !combat.IsChargingBurst) yaw = Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg;
         else if (player != null) yaw = player.transform.eulerAngles.y;
 
         // Animation targets.
@@ -93,7 +93,7 @@ public class MemoryAvatar : MonoBehaviour
         speed01 = Mathf.MoveTowards(speed01, sp, 6f * dt);
         lean = Mathf.MoveTowards(lean, sp * leanAmount + (dashing ? 0.25f : 0f), 3f * dt);
         aim = Mathf.MoveTowards(aim, (combat != null && combat.Firing) ? 1f : 0f, 8f * dt);
-        shield = Mathf.MoveTowards(shield, (combat != null && combat.ShieldUp) ? 1f : 0f, 8f * dt);
+        shield = Mathf.MoveTowards(shield, (combat != null && combat.IsChargingBurst) ? 1f : 0f, 8f * dt);
         stretch = Mathf.MoveTowards(stretch, dashing ? 1f : 0f, 12f * dt);
         float sinceHit = player != null ? Time.time - player.LastHitTime : 99f;
         hit = Mathf.Clamp01(1f - sinceHit / 0.3f);
@@ -130,6 +130,7 @@ public class MemoryAvatar : MonoBehaviour
             block.SetFloat("_Stretch", stretch);
             block.SetFloat("_Hit", hit);
             block.SetFloat("_Kick", kick);
+            block.SetFloat("_CastHand", combat != null && combat.HeavyCast ? 1f : -1f);
             ghosts[i].SetPropertyBlock(block);
         }
 

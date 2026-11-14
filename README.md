@@ -23,6 +23,8 @@ You are a fading memory fighting through a dream that keeps flipping into a nigh
 | Left mouse (hold) | raise shield, absorb enemy orbs to charge Power | fire a stream of shards |
 | Space | dash (brief invulnerability, chain dashes for speed) | same |
 | Shift or right mouse | swap world | swap world |
+| E | burst requires Nightmare | spend full Power on a damaging pulse that clears nearby orbs |
+| R after defeat/victory | restart Level 1 | restart Level 1 |
 | `[` and `]` | test only: lower and raise memory (health) | |
 
 ## Where things are
@@ -46,10 +48,12 @@ You are a fading memory fighting through a dream that keeps flipping into a nigh
 ## Current state (Fri night)
 
 Working: Dream and Nightmare look, world swap, flow movement, dash, recall, Nightmare shooting, Dream shield and absorb, wisp enemies, animated memory figure.
-Not built yet: **the boss (the Eclipse)**, the Power burst, sound and music, a menu and fail state, the itch.io build.
+Gameplay implementation added: the Eclipse encounter, Power burst, timed-shift rewards, defeat/victory and R to retry. C# compilation checked; gameplay balance and visuals still require playtesting. Sound/music, a main menu and the itch.io build remain unfinished.
 Known problems: the player figure and wisps over-brighten under bloom, the Dream still lacks painterly trees, white ruins and a distant giant creature, Nightmare ground reads pale, the wisteria arches are heavy on the GPU. Combat feel has not been tuned by hand yet. Feel values are public fields on `PlayerController`, `PlayerCombat`, `ThirdPersonCamera`, `WispEnemy`.
 
 ## Game design in one paragraph
+
+The saved Level1 HUD installs `EclipseEncounter` at runtime; no scenery rebuild is needed for these mechanics. Approach the black sun near the end of the path (z=142) to engage. Dream fires rotating absorbable rings; Nightmare fires aimed fans. Below half health, attacks and world swaps accelerate. A 1.2-second warning names the next world; manually shifting into it during the warning grants +3 Power and clears orbs within 7 units, once per warning. At 10 Power, E in Nightmare releases a 42-unit pulse for 45 damage. Dream boss armor reduces damage to 15%. These are initial tuning values, not playtested balance. Retry reloads Level1, which is now registered in Build Settings.
 
 Dream: slow, beautiful, safe. Enemy orbs are slow rings you absorb with a shield, which charges Power and heals. Nightmare: fast and loud. Enemy fire is quick and aimed, you shoot back, and the boss is exposed. The boss flips the world on a timer, so you absorb in Dream and strike in Nightmare. Original brief: [LUCID_BRIEF.md](LUCID_BRIEF.md). The puzzle idea was scrapped to focus on combat, movement feel and the boss.
 

@@ -12,11 +12,14 @@ public abstract class Enemy : MonoBehaviour
 
     protected Transform player { get { return PlayerController.Instance != null ? PlayerController.Instance.transform : null; } }
 
+    public virtual void TakeBurstDamage(float damage, Vector3 hitPoint) { TakeDamage(damage, hitPoint); }
+
     protected virtual void OnEnable() { All.Add(this); }
     protected virtual void OnDisable() { All.Remove(this); }
 
     public virtual void TakeDamage(float damage, Vector3 hitPoint)
     {
+        if (EclipseEncounter.Finished || health <= 0f) return;
         health -= damage;
         Fx.Burst(hitPoint, new Color(1f, 0.8f, 0.4f), 6);
         if (health <= 0f) Die();

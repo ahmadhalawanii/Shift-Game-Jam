@@ -18,6 +18,7 @@ Shader "Lucid/MemoryFigure"
         _Walk ("Walk phase", Float) = 0
         _Speed01 ("Speed 0..1", Float) = 0
         _Lean ("Lean (radians)", Float) = 0
+        _CastHand ("Casting Hand", Float) = -1
         _Aim ("Aim 0..1", Float) = 0
         _Shield ("Shield 0..1", Float) = 0
         _Stretch ("Dash stretch 0..1", Float) = 0
@@ -36,6 +37,7 @@ Shader "Lucid/MemoryFigure"
         CBUFFER_START(UnityPerMaterial)
             float4 _Col1, _Col2, _Tint, _DarkCol;
             float _Alpha, _DarkAlpha, _Size, _Strength, _Mix;
+            float _CastHand;
             float _Walk, _Speed01, _Lean, _Aim, _Shield, _Stretch, _Hit, _Kick;
         CBUFFER_END
 
@@ -85,12 +87,14 @@ Shader "Lucid/MemoryFigure"
                 float side = part > 2.5 ? 1.0 : -1.0;
                 float off = part > 2.5 ? 0.0 : HALF_TURN;
                 float swing = sin(ph + off) * 0.6 * sp + sin(t * 1.3 + off) * 0.05;
-                float raise = max(_Aim, _Shield);
+                float cast = side * _CastHand > 0.0 ? _Aim : 0.0;
+                float charge = side > 0.0 ? _Shield : 0.0;
+                float raise = max(cast, charge);
                 float ang = lerp(swing, -1.45, raise);
                 float3 pivot = float3(side * 0.3, 1.55, 0);
                 p = RotX(p, pivot, ang);
-                p.x += side * 0.12 * _Shield;
-                p.z -= _Kick * 0.18 * _Aim;
+                p.x += side * 0.12 * charge;
+                p.z -= _Kick * 0.18 * cast;
             }
 
             if (part < 3.5)

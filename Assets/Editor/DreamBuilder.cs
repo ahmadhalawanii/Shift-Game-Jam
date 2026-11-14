@@ -204,7 +204,6 @@ public static class DreamBuilder
     public static void BuildPrefabs()
     {
         Ensure("Assets/Materials"); Ensure(MatDir); Ensure(MeshDir); Ensure("Assets/Prefabs"); Ensure(PrefabDir);
-        BuildWisteriaArch();
         BuildLightShaft();
         BuildPool();
         BuildAtmosphere();
@@ -231,8 +230,7 @@ public static class DreamBuilder
     public static void Populate(Transform root, Transform player)
     {
         Random.InitState(5);
-        // Wisteria tunnel over the first stretch of road.
-        for (float z = 12f; z <= 84f; z += 9f) DreamOnly(Put("WisteriaArch", new Vector3(0, 0, z), Vector3.zero, root));
+        BuildMoonGarden(root);
 
         // Light shafts slanting through the haze.
         for (int i = 0; i < 9; i++)
@@ -250,5 +248,57 @@ public static class DreamBuilder
         // Drifting petals around the player.
         var petals = Put("DreamPetals", player.position + Vector3.up * 5f, Vector3.zero, player);
         DreamOnly(petals);
+    }
+
+    static GameObject Shape(PrimitiveType type, string name, Transform parent, Vector3 position, Vector3 scale, Material material)
+    {
+        var g = GameObject.CreatePrimitive(type);
+        g.name = name; g.transform.SetParent(parent, false);
+        g.transform.localPosition = position; g.transform.localScale = scale;
+        Object.DestroyImmediate(g.GetComponent<Collider>());
+        g.GetComponent<Renderer>().sharedMaterial = material;
+        return g;
+    }
+
+    static void BuildMoonGarden(Transform parent)
+    {
+        var garden = new GameObject("Moon Garden - Dream");
+        garden.transform.SetParent(parent, false);
+        var bark = Lit("MoonTree_Ivory", "#E3D4BE", 0f, 0.35f);
+        var jade = Lit("MoonTree_Jade", "#69BFA9", 0f, 0.3f);
+        var mint = Lit("MoonTree_Mint", "#B4DBC6", 0f, 0.3f);
+        var stone = Lit("Garden_WhiteStone", "#DCE3DB", 0f, 0.5f);
+        var glow = Lit("Garden_Starlight", "#FFE3A4", 0.7f, 0.5f);
+        for (int i = 0; i < 16; i++)
+        {
+            float side = i % 2 == 0 ? -1f : 1f;
+            Vector3 p = new Vector3(side * (19f + i % 3 * 5f), 0, i * 8f - 5f);
+            var tree = new GameObject("Ivory umbrella tree"); tree.transform.SetParent(garden.transform, false); tree.transform.localPosition = p;
+            Shape(PrimitiveType.Cylinder, "Trunk", tree.transform, new Vector3(0, 3.5f, 0), new Vector3(0.7f, 3.5f, 0.7f), bark);
+            for (int b = 0; b < 5; b++)
+            {
+                float angle = b * Mathf.PI * 0.4f + i;
+                Vector3 end = new Vector3(Mathf.Cos(angle) * 3.5f, 7f + b * 0.35f, Mathf.Sin(angle) * 3.5f);
+                Vector3 start = new Vector3(0, 4f, 0);
+                var branch = Shape(PrimitiveType.Cylinder, "Sweeping branch", tree.transform, (start + end) * 0.5f, new Vector3(0.24f, (end-start).magnitude * 0.5f, 0.24f), bark);
+                branch.transform.localRotation = Quaternion.FromToRotation(Vector3.up, end - start);
+                Shape(PrimitiveType.Sphere, "Broad jade canopy", tree.transform, end, new Vector3(6.4f, 1.5f, 5.4f), b % 2 == 0 ? jade : mint);
+            }
+            if (i % 2 == 0)
+            {
+                Vector3 island = p + new Vector3(side * 13f, 16f + i % 3 * 3f, 6f);
+                Shape(PrimitiveType.Sphere, "Floating garden island", garden.transform, island, new Vector3(10f, 3f, 7f), stone);
+                Shape(PrimitiveType.Sphere, "Floating moss crown", garden.transform, island + Vector3.up * 1.1f, new Vector3(10.2f, 1f, 7.2f), jade);
+            }
+        }
+        // A distant, open circular monument gives the journey a destination and silhouette.
+        for (int i = 0; i < 40; i++)
+        {
+            float angle = i * Mathf.PI * 2f / 40f;
+            var block = Shape(PrimitiveType.Cube, "Broken moon halo", garden.transform,
+                new Vector3(Mathf.Cos(angle) * 16f, 22f + Mathf.Sin(angle) * 16f, 132f), new Vector3(2.3f, 0.8f, 1.3f), i % 5 == 0 ? glow : stone);
+            block.transform.localRotation = Quaternion.Euler(0, 0, angle * Mathf.Rad2Deg + 90f);
+        }
+        DreamOnly(garden);
     }
 }

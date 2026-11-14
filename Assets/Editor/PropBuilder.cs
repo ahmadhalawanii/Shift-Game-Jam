@@ -245,13 +245,7 @@ public static class PropBuilder
         var gs = ground.AddComponent<WorldMaterialSwap>();
         gs.dream = grassD; gs.nightmare = grassN;
 
-        for (int i = 0; i < 6; i++)
-            Place("RoadSegment", new Vector3(0, 0, i * 20), Vector3.zero);
-        for (int i = 0; i < 11; i++)
-        {
-            bool left = (i % 2 == 0);
-            Place("StreetLamp", new Vector3(left ? -5.5f : 5.5f, 0, -5 + i * 16), new Vector3(0, left ? 0 : 180, 0));
-        }
+        BuildGardenRoute();
         NatureBuilder.Populate();
         Place("ShadowFigure", new Vector3(-26, 0, 70), new Vector3(0, 160, 0));
         Place("RuinPillar", new Vector3(-16, 0, 34), Vector3.zero);
@@ -310,5 +304,44 @@ public static class PropBuilder
         state.look = look;
 
         EditorSceneManager.SaveScene(scene, "Assets/Scenes/Level1.unity");
+    }
+
+    // Shared, flush collision plane keeps dashes smooth through both versions of the garden.
+    static void BuildGardenRoute()
+    {
+        var root = new GameObject("The Remembered Garden").transform;
+        var pearl = Mat("Garden_Pearl", "#D1DED5", 0f, 0.55f);
+        var basalt = Mat("Garden_Basalt", "#17131F", 0f, 0.2f);
+        var gold = Mat("Garden_MoonGold", "#B5F1DA", 0.6f);
+        var ember = Mat("Garden_Ember", "#D44720", 0.8f);
+        for (int i = 0; i < 34; i++)
+        {
+            float z = -9f + i * 3.8f;
+            float x = Mathf.Sin(i * 0.23f) * 2.5f;
+            var slab = Prim(PrimitiveType.Cube, "Memory stepping stone", root,
+                new Vector3(x, 0.035f, z), new Vector3(9f + Mathf.Sin(i) * 1.2f, 0.06f, 3.5f),
+                pearl, new Vector3(0, Mathf.Sin(i * 0.7f) * 9f, 0), false);
+            var swap = slab.AddComponent<WorldMaterialSwap>(); swap.dream = pearl; swap.nightmare = basalt;
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var seam = Prim(PrimitiveType.Cube, "Luminous mineral seam", root,
+                    new Vector3(x + side * 4.5f, 0.075f, z), new Vector3(0.08f, 0.025f, 2.6f),
+                    gold, new Vector3(0, side * 14f, 0), false);
+                var color = seam.AddComponent<WorldMaterialSwap>(); color.dream = gold; color.nightmare = ember;
+                if (i % 3 == 0)
+                {
+                    var shard = Prim(PrimitiveType.Cube, "Nightmare fault shard", root,
+                        new Vector3(side * (9f + i % 4), 0.7f, z), new Vector3(1.4f, 3f, 1.2f),
+                        basalt, new Vector3(side * 24f, i * 31f, 18f), false);
+                    WorldOnly(shard, WorldVisibility.NightmareOnly);
+                }
+            }
+        }
+        for (int i = 0; i < 3; i++)
+        {
+            var terrace = Prim(PrimitiveType.Cylinder, "Sanctuary terrace", root,
+                new Vector3(0, 0.025f, 26f + i * 36f), new Vector3(27f, 0.02f, 27f), pearl, collider: false);
+            var swap = terrace.AddComponent<WorldMaterialSwap>(); swap.dream = pearl; swap.nightmare = basalt;
+        }
     }
 }

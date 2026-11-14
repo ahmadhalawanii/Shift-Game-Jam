@@ -88,6 +88,16 @@ public class PlayerController : MonoBehaviour
         GameFeel.HitStop(0.04f);
     }
 
+    // Flat unit direction to the boss, or zero when there is no boss.
+    Vector3 BossDirection()
+    {
+        var boss = EclipseEncounter.Instance != null ? EclipseEncounter.Instance.Boss : null;
+        if (boss == null) return Vector3.zero;
+        Vector3 d = boss.transform.position - transform.position;
+        d.y = 0f;
+        return d.sqrMagnitude > 0.01f ? d.normalized : Vector3.zero;
+    }
+
     // A ring or pad gives a push in a direction.
     public void Boost(Vector3 dir, float speed)
     {
@@ -154,6 +164,9 @@ public class PlayerController : MonoBehaviour
         input = Vector2.ClampMagnitude(input, 1f);
 
         Vector3 fwd = cameraTransform != null ? Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up).normalized : Vector3.forward;
+        // Boss lock-on: W/S move toward and away from the boss, A/D strafe around it.
+        Vector3 toBoss = BossDirection();
+        if (ThirdPersonCamera.LockedOn && toBoss.sqrMagnitude > 0.01f) fwd = toBoss;
         Vector3 right = Vector3.Cross(Vector3.up, fwd);
         Vector3 wish = fwd * input.y + right * input.x;
         bool hasWish = wish.sqrMagnitude > 0.01f;
@@ -215,7 +228,7 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        Vector3 flat = vel; flat.y = 0f;
+        Vector3 flat = ThirdPersonCamera.LockedOn && toBoss.sqrMagnitude > 0.01f ? toBoss : vel; flat.y = 0f;
         if (flat.sqrMagnitude > 0.5f)
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(flat), 10f * Time.deltaTime);
 

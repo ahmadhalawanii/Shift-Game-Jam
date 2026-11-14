@@ -29,6 +29,7 @@ public class EclipseEncounter : MonoBehaviour
         root.transform.position = ArenaCenter + Vector3.up * 7f;
         Boss = root.AddComponent<EclipseBoss>();
         gameObject.AddComponent<EclipseArena>();
+        BossArenaTrigger.Create(ArenaCenter, ArenaRadius);
         if (retryBoss && player != null)
         {
             retryBoss = false;
@@ -58,7 +59,7 @@ public class EclipseEncounter : MonoBehaviour
         EnemyBullet.Clear(Vector3.zero, float.PositiveInfinity);
         foreach (var enemy in Enemy.All.ToArray())
             if (enemy is WispEnemy) enemy.gameObject.SetActive(false);
-        Tell("THE ECLIPSE — Q to focus the boss. Round orbs: absorb. Red waves: dash.", 5f);
+        Tell("THE ECLIPSE — Round orbs: absorb. Red waves: dash. Q shifts the world.", 5f);
     }
     public void End(bool victory)
     {

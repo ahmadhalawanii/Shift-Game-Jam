@@ -82,7 +82,7 @@ public class MemoryAvatar : MonoBehaviour
         Vector3 v = cc != null ? cc.velocity : Vector3.zero;
         v.y = 0f;
         float speed = v.magnitude;
-        if (speed > 0.5f && combat != null && !combat.Firing && !combat.IsChargingBurst) yaw = Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg;
+        if (speed > 0.5f && !ThirdPersonCamera.LockedOn && combat != null && !combat.Firing && !combat.IsChargingBurst) yaw = Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg;
         else if (player != null) yaw = player.transform.eulerAngles.y;
 
         // Animation targets.

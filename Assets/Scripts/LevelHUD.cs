@@ -76,7 +76,7 @@ public class LevelHUD : MonoBehaviour
         if (w == null || WorldState.CurrentOrDream != World.Nightmare) return;
         var d = w.Current;
         string ammo = d.kind == WeaponKind.Chain ? (w.Overheated ? "OVERHEATED" : "heat " + Mathf.RoundToInt(w.Heat01 * 100f) + "%")
-            : w.Reloading ? "RELOADING " + Mathf.RoundToInt(w.Reload01 * 100f) + "%  (" + LucidInput.Label(LucidInput.Reload) + " in the sweet spot)" : w.Mag(w.Index) + " / " + w.Reserve(w.Index);
+            : w.Reloading ? "RELOADING " + Mathf.RoundToInt(w.Reload01 * 100f) + "%" : w.Mag(w.Index) + " / ∞";
         GUI.Label(new Rect(Screen.width - 420f, Screen.height - 96f, 400f, 28f), (w.Index + 1) + "  " + d.name.ToUpper() + "   " + ammo, big);
     }
 
@@ -198,7 +198,7 @@ public class LevelHUD : MonoBehaviour
                 GUI.DrawTexture(new Rect(x + 2 + (width - 4) * sheet.phase2At, 53, 2, 18), Texture2D.whiteTexture);
                 GUI.DrawTexture(new Rect(x + 2 + (width - 4) * sheet.phase3At, 53, 2, 18), Texture2D.whiteTexture);
                 GUI.color = saved;
-                string state = boss.BindingReady ? "BIND IN DREAM" : boss.Stunned ? "WAKE WINDOW" : boss.Sealed ? "SEALED" : "EXPOSED";
+                string state = boss.Stunned ? "STAGGERED" : boss.Sealed ? "SEALED" : "EXPOSED";
                 GUI.Label(new Rect(x, 25, width, 28), $"THE SLEEPER   /   PHASE {boss.Phase}   /   {state}", big);
                 if (boss.Charging) GUI.Label(new Rect(x, 72, width, 24), boss.AttackName, small);
             }

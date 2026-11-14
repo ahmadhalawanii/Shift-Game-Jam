@@ -7,7 +7,6 @@ public sealed class EclipseArena : MonoBehaviour
     Material floor, markings;
     Mesh mesh, ruinMesh;
     Material ruins;
-    GameObject anchor;
     LineRenderer boundary, fracture;
     EclipseBoss boss;
     public const float FusedRadius = 22f;
@@ -59,11 +58,6 @@ public sealed class EclipseArena : MonoBehaviour
         player = FindFirstObjectByType<PlayerController>();
         fracture = Ring(FusedRadius, 0.28f);
         fracture.startColor = fracture.endColor = new Color(1f, 0.22f, 0.42f);
-        var sigil = Ring(1.65f, 0.17f);
-        sigil.transform.position = EclipseBoss.DreamAnchorPosition;
-        sigil.transform.rotation = Quaternion.Euler(65f, 0f, 0f);
-        sigil.startColor = sigil.endColor = new Color(0.15f, 1f, 0.9f);
-        anchor = sigil.gameObject;
         BuildRuins();
         // Hide only small scattered nature inside the combat footprint, at runtime.
         foreach (GameObject group in gameObject.scene.GetRootGameObjects())
@@ -130,7 +124,6 @@ public sealed class EclipseArena : MonoBehaviour
     {
         bool dream = WorldState.Instance == null || WorldState.Instance.Current == World.Dream;
         bool fused = boss != null && boss.Phase == 3;
-        anchor.SetActive(dream && boss != null && boss.Engaged);
         fracture.enabled = fused;
         if (fused)
         {
@@ -154,7 +147,7 @@ public sealed class EclipseArena : MonoBehaviour
 
     void UpdateHazards(bool dream)
     {
-        bool suspended = boss == null || !boss.Engaged || boss.InTransformation || boss.BindingReady || boss.Teleporting ||
+        bool suspended = boss == null || !boss.Engaged || boss.InTransformation || boss.Teleporting ||
             EclipseEncounter.Finished || player == null || player.Recalling;
         if (suspended)
         {

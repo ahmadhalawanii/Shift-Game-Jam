@@ -8,70 +8,9 @@ public class EclipseBoss : Enemy
     [Tooltip("Overwritten from BossAttackData.bossHealth on Start.")]
     public float maxHealth = 300f;
     public float activationDistance = 25.5f;
-    [Range(0.5f, 1f)] public float bindingPowerFraction = 1f;
-    public bool Sealed => BindingReady || beat == Beat.PhaseTell || vanish < 0.5f || (!Stunned && CurrentWorld == World.Dream);
-    public bool BindingReady { get; private set; }
-    public bool WakeActive { get; private set; }
-    public float WakeCharge01 => Mathf.Clamp01(wakeCharge / sheet.lucidShotCharge);
+    public bool Sealed => beat == Beat.PhaseTell || vanish < 0.5f || (!Stunned && CurrentWorld == World.Dream);
     public float SwapSeconds => Mathf.Max(0f, swapAt - Time.time);
     public float Swap01 => 1f - Mathf.Clamp01(SwapSeconds / Mathf.Max(.1f, PhaseData.swapInterval));
-    float wakeUntil, wakeGraceUntil, wakeCharge;
-    LineRenderer wakeBeam;
-    Material wakeMaterial;
-    public void BeginWakeWindow()
-    {
-        if (WakeActive || Time.time < wakeGraceUntil || EclipseEncounter.Finished) return;
-        WakeActive = true; BindingReady = true; wakeCharge = 0f; wakeUntil = Time.time + sheet.wakeWindowSeconds;
-        director.StopAll(); EnemyBullet.ClearBoss(); GroundWave.ClearAll(); BossHazards.ClearAll();
-        SetVanish(1f);
-        if (WorldState.Instance != null) WorldState.Instance.HoldBoundary = true;
-        if (WorldShift.Instance != null) WorldShift.Instance.HoldBoundary(true);
-        Tell("WAKE WINDOW / HOLD FIRE TO CHARGE, RELEASE TO AWAKEN", sheet.wakeWindowSeconds);
-        LucidAudio.Play(LucidAudio.Cue.Charge);
-    }
-    void TickWakeWindow()
-    {
-        if (LucidInput.Fire.IsPressed()) wakeCharge = Mathf.Min(sheet.lucidShotCharge, wakeCharge + Time.deltaTime);
-        if (wakeBeam == null)
-        {
-            wakeMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit")); wakeMaterial.SetColor("_BaseColor", new Color(2f, 1.1f, 1.6f));
-            var go = new GameObject("Lucid Shot"); go.transform.SetParent(transform);
-            wakeBeam = go.AddComponent<LineRenderer>(); wakeBeam.sharedMaterial = wakeMaterial; wakeBeam.positionCount = 24;
-        }
-        wakeBeam.enabled = wakeCharge > 0f;
-        Vector3 hand = player.position + Vector3.up * 1.2f;
-        for (int i = 0; i < 24; i++)
-        {
-            float t = i / 23f, a = t * 18f - Time.time * 7f;
-            wakeBeam.SetPosition(i, Vector3.Lerp(hand, transform.position, t) + new Vector3(Mathf.Cos(a), Mathf.Sin(a), 0f) * Mathf.Sin(t * Mathf.PI) * WakeCharge01);
-        }
-        wakeBeam.widthMultiplier = .035f + WakeCharge01 * .1f;
-        if (LucidInput.Fire.WasReleasedThisFrame())
-        {
-            if (WakeCharge01 >= 1f)
-            {
-                EndWakeWindow(true); wakeBeam.widthMultiplier = 1.2f;
-                CombatPulse.Spawn(transform.position, 18f, new Color(1f,.7f,.85f));
-                GameFeel.HitStop(.16f); LucidAudio.Play(LucidAudio.Cue.Burst); health = 0f; Die(); return;
-            }
-            wakeCharge = 0f;
-        }
-        if (Time.time >= wakeUntil) EndWakeWindow(false);
-    }
-    void EndWakeWindow(bool success)
-    {
-        WakeActive = false; BindingReady = false;
-        if (WorldState.Instance != null) { WorldState.Instance.HoldBoundary = false; if (success) WorldState.Instance.Set(World.Dream); }
-        if (WorldShift.Instance != null) WorldShift.Instance.HoldBoundary(false);
-        if (wakeBeam != null) wakeBeam.enabled = success;
-        if (!success)
-        {
-            health = maxHealth * sheet.wakeWindowAt; wakeGraceUntil = Time.time + sheet.wakeWindowGrace;
-            beat = Beat.Fight; director.Rest(.5f); director.ScheduleTeleport(); swapAt = Time.time + PhaseData.swapInterval;
-            Tell("THE SLEEPER STIRS / ANOTHER CHANCE WILL COME", 2f);
-        }
-    }
-    void OnDestroy() { if (wakeMaterial != null) Destroy(wakeMaterial); }
     public bool InTransformation => beat == Beat.PhaseTell;
 
     public bool Engaged { get; private set; }
@@ -142,7 +81,7 @@ public class EclipseBoss : Enemy
     PlayerController pc;
     Transform cam;
     AttackDirector director;
-    float nextWeave, stunUntil, nightmareSince, swapAt;
+    float stunUntil, nightmareSince, swapAt;
     float vanish = 1f;
     const float BaseScale = 1.25f;
     bool swapWarned, forcingSwap;
@@ -178,8 +117,6 @@ public class EclipseBoss : Enemy
 
     protected override void OnDisable()
     {
-        if (WorldState.Instance != null) WorldState.Instance.HoldBoundary = false;
-        if (WorldShift.Instance != null) WorldShift.Instance.HoldBoundary(false);
         WorldState.Changed -= OnWorldChanged;
         beat = Beat.Dead;
         Engaged = false;
@@ -190,53 +127,12 @@ public class EclipseBoss : Enemy
         base.OnDisable();
     }
 
-    void Weave()
-    {
-        if (CurrentWorld != World.Dream || playerCombat == null) return;
-        if (BindingReady && playerCombat.TrySpendPower(bindingPowerFraction))
-        {
-            CombatPulse.Spawn(transform.position, 14f, new Color(0.6f, 0.95f, 1f));
-            Die();
-        }
-        else if (BindingReady)
-            Tell("ABSORB DREAM SEEDS TO COMPLETE THE BINDING", 2f);
-        else if (playerCombat.LucidPulseReady)
-            LucidPulse();
-        else if (Time.time >= nextWeave &&
-            (player.position - DreamAnchorPosition).sqrMagnitude < 16f)
-        {
-            nextWeave = Time.time + 7f;
-            playerCombat.AddPower(2f);
-            CombatPulse.Spawn(DreamAnchorPosition, 4f, Color.cyan);
-            Tell("ANCHOR WOVEN  +2 POWER", 1.4f);
-        }
-    }
-
-    // Resonance x5: a ring that hits the boss through its Dream armour and clears nearby orbs.
-    void LucidPulse()
-    {
-        playerCombat.ResetResonance();
-        Vector3 at = player.position + Vector3.up;
-        CombatPulse.Spawn(at, Data.lucidPulseRadius, new Color(1f, 0.95f, 0.6f));
-        CombatPulse.Spawn(at, Data.lucidPulseRadius * 0.6f, new Color(0.5f, 1f, 1f));
-        EnemyBullet.Clear(at, Data.lucidPulseRadius);
-        Fx.Burst(at, new Color(1f, 0.9f, 0.5f), 120);
-        ThirdPersonCamera.Shake(0.35f);
-        GameFeel.HitStop(0.05f);
-        LucidAudio.Play(LucidAudio.Cue.Burst);
-        TakePulseDamage(Data.lucidPulseDamage, transform.position);
-        Tell("LUCID PULSE", 1.5f);
-    }
-
-    public static Vector3 DreamAnchorPosition => EclipseEncounter.ArenaCenter + Vector3.left * 13f + Vector3.up;
 
     void Update()
     {
         if (DreamcatcherPresentation.CoversHud) return;
         if (player == null || EclipseEncounter.Finished || beat == Beat.Dead) return;
         DebugKeys();
-        if (WakeActive) { TickWakeWindow(); return; }
-        if (Phase == 3 && health <= maxHealth * sheet.wakeWindowAt && Time.time >= wakeGraceUntil) { BeginWakeWindow(); return; }
         if (!Engaged)
         {
             Vector3 fromCenter = player.position - EclipseEncounter.ArenaCenter;
@@ -291,7 +187,6 @@ public class EclipseBoss : Enemy
     {
         director.StopAll();
         Phase = phase;
-        BindingReady = false;
         LucidAudio.Play(LucidAudio.Cue.Fusion);
         EnemyBullet.ClearBoss();
         GroundWave.ClearAll();
@@ -316,7 +211,7 @@ public class EclipseBoss : Enemy
     {
         var ws = WorldState.Instance;
         if (ws == null) return;
-        bool timed = beat == Beat.Fight && !BindingReady && !Teleporting;
+        bool timed = beat == Beat.Fight && !Teleporting;
         if (!timed) swapAt = Mathf.Max(swapAt, Time.time + 1f);
         else
         {
@@ -421,7 +316,7 @@ public class EclipseBoss : Enemy
     }
     public void Stagger(float seconds)
     {
-        if (!Engaged || WakeActive || InTransformation) return;
+        if (!Engaged || InTransformation) return;
         director.StopAll(); director.Rest(seconds); SetVanish(1f);
         Stun(seconds);
     }
@@ -450,7 +345,7 @@ public class EclipseBoss : Enemy
     public override void TakeDamage(float damage, Vector3 hitPoint)
     {
         if (!Engaged || EclipseEncounter.Finished) return;
-        if (BindingReady || beat == Beat.PhaseTell || vanish < 0.5f)
+        if (beat == Beat.PhaseTell || vanish < 0.5f)
         {
             Fx.Burst(hitPoint, new Color(0.65f, 0.85f, 1f), 5);
             return;
@@ -462,14 +357,14 @@ public class EclipseBoss : Enemy
     // Lucid Pulse goes through Dream armour, but never through a transformation or the finale seal.
     public void TakePulseDamage(float damage, Vector3 hitPoint)
     {
-        if (!Engaged || EclipseEncounter.Finished || BindingReady || beat == Beat.PhaseTell) return;
+        if (!Engaged || EclipseEncounter.Finished || beat == Beat.PhaseTell) return;
         ApplyDamage(damage, hitPoint);
     }
 
     void ApplyDamage(float damage, Vector3 hitPoint)
     {
         // Each threshold is a gate, so a single heavy shot cannot skip a transformation.
-        float floor = Phase == 1 ? maxHealth * sheet.phase2At : Phase == 2 ? maxHealth * sheet.phase3At : maxHealth * sheet.wakeWindowAt;
+        float floor = Phase == 1 ? maxHealth * sheet.phase2At : Phase == 2 ? maxHealth * sheet.phase3At : 0f;
         // One Nightmare window removes at most windowCap of the boss's health at full value; the rest is reduced.
         float room = Mathf.Max(0f, maxHealth * sheet.windowCap - windowDamage);
         float full = Mathf.Min(damage, room);
@@ -478,14 +373,17 @@ public class EclipseBoss : Enemy
         float previous = health;
         health = Mathf.Max(floor, health - damage);
         if (health < previous) Fx.Burst(hitPoint, Stunned ? new Color(0.6f, 1f, 1f) : new Color(1f, 0.6f, 0.2f), Stunned ? 12 : 6);
-        if (Phase == 3 && health <= floor && !BindingReady && Time.time >= wakeGraceUntil)
-        {
-            BeginWakeWindow();
-        }
+        if (health <= 0f) Die();
     }
 
     protected override void Die()
     {
+        if (beat == Beat.Dead || EclipseEncounter.Finished) return;
+        beat = Beat.Dead;
+        health = 0f;
+        director.StopAll();
+        BossHazards.ClearAll();
+        if (WorldState.Instance != null) WorldState.Instance.Set(World.Dream);
         bool cinematic = DreamcatcherPresentation.PlayEnding(this);
         if (EclipseEncounter.Instance != null) EclipseEncounter.Instance.End(true);
         if (!cinematic) base.Die();
@@ -500,7 +398,7 @@ public class EclipseBoss : Enemy
         if (kb == null) return;
         bool any = kb.f5Key.wasPressedThisFrame || kb.f6Key.wasPressedThisFrame || kb.f7Key.wasPressedThisFrame ||
             kb.nKey.wasPressedThisFrame || kb.tKey.wasPressedThisFrame || kb.vKey.wasPressedThisFrame ||
-            kb.kKey.wasPressedThisFrame || kb.hKey.wasPressedThisFrame || kb.f9Key.wasPressedThisFrame;
+            kb.kKey.wasPressedThisFrame || kb.hKey.wasPressedThisFrame;
         if (!any) return;
         if (!Engaged)
         {
@@ -515,7 +413,6 @@ public class EclipseBoss : Enemy
         if (kb.f5Key.wasPressedThisFrame) DebugPhase(1);
         if (kb.f6Key.wasPressedThisFrame) DebugPhase(2);
         if (kb.f7Key.wasPressedThisFrame) DebugPhase(3);
-        if (kb.f9Key.wasPressedThisFrame) { Phase = 3; beat = Beat.Fight; health = maxHealth * sheet.wakeWindowAt; wakeGraceUntil = 0f; BeginWakeWindow(); }
         if (kb.nKey.wasPressedThisFrame) ForceWorld(CurrentWorld == World.Dream ? World.Nightmare : World.Dream);
         if (kb.tKey.wasPressedThisFrame) { beat = Beat.Fight; director.ForceTeleport(); }
         if (kb.vKey.wasPressedThisFrame) { beat = Beat.Fight; Tell("DEBUG  /  " + director.CycleNext(), 2f); }

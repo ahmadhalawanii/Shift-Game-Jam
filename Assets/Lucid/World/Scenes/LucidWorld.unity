@@ -6826,18 +6826,18 @@ MonoBehaviour:
   - name: Threshold Glade
     spawn: {x: 0, y: -33.9, z: -158}
     yaw: 0
-    hint: Left Ctrl jumps; hold it to hover in Dream. Press Left Shift to shift the
-      world, then strike the glowing bud (left-click) to open the thorns.
+    hint: Space jumps; hold it to hover in Dream. Press Q to shift the
+      world, then shoot the glowing bud (left-click) to open the thorns.
   - name: The Hollow Bridge
     spawn: {x: 0, y: -33.9, z: -129}
     yaw: 0
-    hint: Petals only hold in Dream. Thorns only hold in Nightmare. Press Left Shift
-      in the air to land on the other world. Space dashes across long gaps.
+    hint: Petals only hold in Dream. Thorns only hold in Nightmare. Press Q
+      in the air to land on the other world. Shift dashes across long gaps.
   - name: The Weeping Wall
     spawn: {x: 0, y: -30.7, z: -62}
     yaw: 0
-    hint: 'Jump at a wall with glowing handholds to run along it; Left Ctrl leaps
-      off. Handholds exist in one world: press Left Shift mid-run when they change.'
+    hint: 'Jump at a wall with glowing handholds to run along it; Space leaps
+      off. Handholds exist in one world: press Q mid-run when they change.'
   - name: The Gloam Hollow
     spawn: {x: 0, y: -26.9, z: 7.5}
     yaw: 0

@@ -10,13 +10,10 @@ public class PlayerWeapons : MonoBehaviour
     public WeaponData Current { get { return sheet.weapons[Index]; } }
     public WeaponData Data(int i) { return sheet.weapons[i]; }
     public int Mag(int i) { return mag[i]; }
-    public int Reserve(int i) { return reserve[i]; }
     public bool Reloading { get { return reloadLeft[Index] > 0f; } }
     public float Reload01 { get { return Reloading ? 1f - reloadLeft[Index] / reloadTotal[Index] : 0f; } }
-    public bool ReloadMissed { get { return tried[Index] && Reloading; } }
     public float Heat01 { get; private set; }
     public bool Overheated { get { return Time.time < lockoutUntil; } }
-    public bool Buffed { get { return Time.time < buffUntil; } }
     public bool Firing { get { return Time.time - lastShot < 0.5f; } }
     public bool Overdrive { get { return Time.time < overdriveUntil; } }
     [System.NonSerialized] public float overdriveUntil = -99f;
@@ -25,10 +22,9 @@ public class PlayerWeapons : MonoBehaviour
     BalanceSheet sheet;
     PlayerCombat combat;
     PlayerController pc;
-    int[] mag, reserve;
-    float[] reloadLeft, reloadTotal, carry;
-    bool[] tried;
-    float nextShot, lastShot = -99f, switchUntil, buffUntil, lockoutUntil, nextBeamTick;
+    int[] mag;
+    float[] reloadLeft, reloadTotal;
+    float nextShot, lastShot = -99f, switchUntil, lockoutUntil, nextBeamTick;
     LineRenderer[] tracers;
     float[] tracerAge;
     LineRenderer beam;
@@ -41,7 +37,7 @@ public class PlayerWeapons : MonoBehaviour
         combat = GetComponent<PlayerCombat>();
         pc = GetComponent<PlayerController>();
         int n = Count;
-        mag = new int[n]; reserve = new int[n]; reloadLeft = new float[n]; reloadTotal = new float[n]; carry = new float[n]; tried = new bool[n];
+        mag = new int[n]; reloadLeft = new float[n]; reloadTotal = new float[n];
         Refill();
     }
 
@@ -76,24 +72,18 @@ public class PlayerWeapons : MonoBehaviour
         return l;
     }
 
-    // Full magazines and the starting reserve (fight start, checkpoints).
+    // Full magazines (fight start, checkpoints).
     public void Refill()
-    {
-        for (int i = 0; i < Count; i++) { mag[i] = Data(i).magazine; reserve[i] = Data(i).startReserve; reloadLeft[i] = 0f; }
-    }
-
-    // Heart Seeds: rounds per weapon in the order of the sheet. Fractions carry over to the next seed.
-    public void AddAmmo(float revolver, float scatter)
     {
         for (int i = 0; i < Count; i++)
         {
-            float add = Data(i).kind == WeaponKind.Revolver ? revolver : Data(i).kind == WeaponKind.Scatter ? scatter : 0f;
-            carry[i] += add;
-            int whole = Mathf.FloorToInt(carry[i]);
-            carry[i] -= whole;
-            reserve[i] += whole;
+            mag[i] = Data(i).magazine;
+            reloadLeft[i] = 0f;
         }
+        Heat01 = 0f;
+        lockoutUntil = 0f;
     }
+
     // Stage D activates the existing Overdrive multipliers, cancelling reload/heat lockout.
     public void BeginOverdrive(float seconds)
     {
@@ -135,34 +125,8 @@ public class PlayerWeapons : MonoBehaviour
         beam.enabled = false;
         Cool();
 
-        // Reload. A second press inside the sweet spot finishes early and buffs damage; a miss locks the timing out.
-        if (Reloading)
-        {
-            if (LucidInput.Reload.WasPressedThisFrame() && !tried[Index])
-            {
-                tried[Index] = true;
-                float p = Reload01;
-                if (p >= w.sweetSpotStart && p <= w.sweetSpotStart + w.sweetSpotWidth)
-                {
-                    reloadLeft[Index] = Mathf.Min(reloadLeft[Index], Mathf.Max(0.01f, w.activeReloadTime - (reloadTotal[Index] - reloadLeft[Index])));
-                    reloadLeft[Index] = Mathf.Min(reloadLeft[Index], 0.12f);
-                    buffUntil = Time.time + w.activeBuffSeconds;
-                    tried[Index] = false;
-                    LucidAudio.Sfx("reload_perfect");
-                    if (EclipseEncounter.Instance != null) EclipseEncounter.Instance.Tell("PERFECT RELOAD", 0.8f);
-                }
-                else LucidAudio.Sfx("empty");
-            }
-            reloadLeft[Index] -= Time.deltaTime;
-            if (reloadLeft[Index] <= 0f)
-            {
-                int n = Mathf.Min(w.magazine - mag[Index], reserve[Index]);
-                mag[Index] += n; reserve[Index] -= n; reloadLeft[Index] = 0f;
-                LucidAudio.Sfx("reload");
-            }
-            return;
-        }
-        if (!Overdrive && LucidInput.Pressed(LucidInput.Reload) && mag[Index] < w.magazine && reserve[Index] > 0) { LucidInput.Consume(LucidInput.Reload); BeginReload(w); return; }
+        if (Reloading) return;
+        if (!Overdrive && LucidInput.Pressed(LucidInput.Reload) && mag[Index] < w.magazine) { LucidInput.Consume(LucidInput.Reload); BeginReload(w); return; }
 
         // One click, one shot (the press is buffered).
         if (!ready || Time.time < nextShot || !LucidInput.Pressed(LucidInput.Fire)) return;
@@ -170,7 +134,7 @@ public class PlayerWeapons : MonoBehaviour
         if (mag[Index] <= 0 && !Overdrive)
         {
             LucidAudio.Sfx("empty");
-            if (reserve[Index] > 0) BeginReload(w);
+            BeginReload(w);
             return;
         }
         Shoot(w);
@@ -179,13 +143,12 @@ public class PlayerWeapons : MonoBehaviour
     void BeginReload(WeaponData w)
     {
         reloadTotal[Index] = reloadLeft[Index] = w.reloadTime;
-        tried[Index] = false;
         LucidAudio.Sfx("reload");
     }
 
     float Multiplier(WeaponData w)
     {
-        float m = combat.DreadMultiplier * (Buffed ? w.activeBuff : 1f) * (Overdrive ? sheet.overdrive.amount : 1f) * empowered;
+        float m = combat.DreadMultiplier * (Overdrive ? sheet.overdrive.amount : 1f) * empowered;
         empowered = 1f;
         return m;
     }
@@ -228,7 +191,7 @@ public class PlayerWeapons : MonoBehaviour
         if (w.fovPunch > 0f) ThirdPersonCamera.FovPunch(w.fovPunch);
         LucidAudio.Sfx(w.kind == WeaponKind.Scatter ? "scatter" : "revolver");
         if (weak) GameFeel.HitStop(0.04f);
-        if (mag[Index] <= 0 && reserve[Index] > 0 && !Overdrive) BeginReload(w);
+        if (mag[Index] <= 0 && !Overdrive) BeginReload(w);
     }
 
     void TickBeam(WeaponData w, bool ready)
@@ -360,6 +323,17 @@ public class PlayerWeapons : MonoBehaviour
 
     void Update()
     {
+        if (DreamcatcherPresentation.CoversHud || EclipseEncounter.Finished) return;
+        for (int i = 0; i < Count; i++)
+        {
+            if (reloadLeft[i] <= 0f) continue;
+            reloadLeft[i] = Mathf.Max(0f, reloadLeft[i] - Time.deltaTime);
+            if (reloadLeft[i] > 0f) continue;
+
+            mag[i] = Data(i).magazine;
+            if (i == Index) LucidAudio.Sfx("reload");
+        }
+
         for (int i = 0; i < tracers.Length; i++)
         {
             if (!tracers[i].enabled) continue;

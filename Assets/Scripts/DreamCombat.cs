@@ -28,6 +28,12 @@ public class DreamCombat : MonoBehaviour
         avatar = GetComponentInChildren<MemoryAvatar>(); Ward = sheet.wardMax; baseSpeed = pc.maxSpeed;
         pc.DashEnded += DashMist; WorldState.Changed += Changed;
     }
+    public void RestoreWard()
+    {
+        Ward = sheet.wardMax;
+        brokenUntil = 0f;
+    }
+
     void Changed(World w) { drawStarted = -1f; WardUp = false; pc.maxSpeed = baseSpeed; }
     void DashMist() { if (WorldState.CurrentOrDream == World.Dream) mistUntil = Time.time + sheet.dreamMistSeconds; }
     public void Tick(World world)
@@ -119,7 +125,6 @@ public class DreamCombat : MonoBehaviour
         if (boss != null && boss.Engaged) heal = boss.ClaimSeedHealing(heal);
         if (throughBloom) bloomHeal += heal; else Heal(heal);
         Ward = Mathf.Min(sheet.wardMax, Ward + sheet.seedWard); combat.AddPower(sheet.seedPower);
-        combat.Weapons.AddAmmo(sheet.seedAmmo.x, sheet.seedAmmo.y);
         Fx.Burst(where, Pink, perfect ? 32 : 12); LucidAudio.Play(LucidAudio.Cue.Capture);
         if (perfect)
         {

@@ -13,7 +13,6 @@ public class WeaponData
     public float shotsPerSecond = 3f;
     public int pellets = 1;
     public int magazine = 6;
-    public int startReserve = 12;
     public float reloadTime = 1.7f;
     public float range = 40f;
     public float spreadDegrees = 0.5f;
@@ -21,12 +20,6 @@ public class WeaponData
     [Range(0f, 1f)] public float falloffFloor = 0.25f;
     public float weakPointMultiplier = 1f;
 
-    [Header("Active reload (magazine weapons)")]
-    public float activeReloadTime = 0.9f;
-    [Range(0f, 1f)] public float sweetSpotStart = 0.42f;
-    [Range(0f, 1f)] public float sweetSpotWidth = 0.14f;
-    public float activeBuff = 1.2f;
-    public float activeBuffSeconds = 4f;
 
     [Header("Beam")]
     public float heatSeconds = 3.5f;
@@ -70,12 +63,12 @@ public class BalanceSheet : ScriptableObject
     [Header("Weapons (Nightmare)")]
     public WeaponData[] weapons =
     {
-        new WeaponData { name = "Thorn Revolver", kind = WeaponKind.Revolver, damage = 14f, shotsPerSecond = 3f, magazine = 6, startReserve = 12,
+        new WeaponData { name = "Thorn Revolver", kind = WeaponKind.Revolver, damage = 14f, shotsPerSecond = 3f, magazine = 6,
             reloadTime = 1.7f, range = 45f, spreadDegrees = 0.4f, weakPointMultiplier = 1.6f, color = new Color(1f, 0.45f, 0.35f), shake = 0.07f, fovPunch = 1.2f, crosshairSpread = 0.8f },
-        new WeaponData { name = "Gloam Scatter", kind = WeaponKind.Scatter, damage = 5f, pellets = 8, shotsPerSecond = 1f, magazine = 2, startReserve = 6,
-            reloadTime = 2.4f, activeReloadTime = 1.4f, range = 14f, spreadDegrees = 7f, falloffDistance = 9f, falloffFloor = 0.25f,
+        new WeaponData { name = "Gloam Scatter", kind = WeaponKind.Scatter, damage = 5f, pellets = 8, shotsPerSecond = 1f, magazine = 2,
+            reloadTime = 2.4f, range = 14f, spreadDegrees = 7f, falloffDistance = 9f, falloffFloor = 0.25f,
             color = new Color(1f, 0.6f, 0.15f), shake = 0.16f, fovPunch = 2f, crosshairSpread = 1.8f },
-        new WeaponData { name = "Wraith Chain", kind = WeaponKind.Chain, damage = 22f, magazine = 0, startReserve = 0, range = 20f,
+        new WeaponData { name = "Wraith Chain", kind = WeaponKind.Chain, damage = 22f, magazine = 0, range = 20f,
             heatSeconds = 3.5f, lockoutSeconds = 2.5f, lockConeDegrees = 12f, color = new Color(0.7f, 0.35f, 1f), shake = 0.012f, crosshairSpread = 1.2f },
     };
     public float aimAssistDegrees = 3.5f;           // snap to a weak point this close to the crosshair
@@ -88,10 +81,6 @@ public class BalanceSheet : ScriptableObject
     [Range(0f, 1f)] public float dreamDamageScale = 0.1f;
     [Range(0f, 1f)] public float windowCap = 0.15f;         // share of boss health one Nightmare window can remove at full value
     [Range(0f, 1f)] public float overCapScale = 0.4f;       // damage beyond the cap is multiplied by this
-    [Range(0f, 1f)] public float wakeWindowAt = 0.10f;
-    public float wakeWindowSeconds = 4f;
-    public float lucidShotCharge = 2f;
-    public float wakeWindowGrace = 10f;
 
     [Header("Weak points")]
     public float weakPointOrbitDegrees = 22f;       // per second around the boss
@@ -115,7 +104,6 @@ public class BalanceSheet : ScriptableObject
     public float seedPower = 5f;
     public float perfectCatchWindow = 0.15f;
     public float perfectCatchMultiplier = 2f;
-    [Tooltip("Rounds per seed: x = Revolver, y = Scatter shells. Fractions carry over.")] public Vector2 seedAmmo = new Vector2(1.7f, 0.5f);
     [Range(0f, 1f)] public float pinkSeedShare = 0.25f;     // share of plain Dream orbs that become Heart Seeds
     public int seedStreamCount = 6;                 // extra seeds sent at the player each Dream window
     public float thornShotPower = 3f;

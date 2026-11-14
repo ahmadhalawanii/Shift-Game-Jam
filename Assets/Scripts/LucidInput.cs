@@ -48,13 +48,12 @@ public static class LucidInput
 
         Fire = Button("Fire", "<Mouse>/leftButton", "<Gamepad>/rightTrigger");
         Aim = Button("Aim / Ward", "<Mouse>/rightButton", "<Gamepad>/leftTrigger");
-        Dash = Button("Dash", "<Keyboard>/space", "<Gamepad>/buttonSouth");
-        // Jump is not in the combat table (Space is the dash). It is needed for the traversal zones.
-        Jump = Button("Jump", "<Keyboard>/leftCtrl", "<Gamepad>/dpad/down");
-        SwapStance = Button("Swap stance", "<Keyboard>/leftShift", "<Gamepad>/leftShoulder");
+        Dash = Button("Dash", "<Keyboard>/leftShift", "<Gamepad>/buttonSouth");
+        Jump = Button("Jump", "<Keyboard>/space", "<Gamepad>/dpad/down");
+        SwapStance = Button("Swap stance", "<Keyboard>/q", "<Gamepad>/leftShoulder");
         Reload = Button("Reload", "<Keyboard>/r", "<Gamepad>/buttonWest");
         Ability1 = Button("Ability 1", "<Keyboard>/e", "<Gamepad>/buttonEast");
-        Ability2 = Button("Ability 2", "<Keyboard>/q", "<Gamepad>/buttonNorth");
+        Ability2 = Button("Ability 2", "<Keyboard>/leftCtrl", "<Gamepad>/buttonNorth");
         Overdrive = Button("Overdrive", "<Keyboard>/f", "<Gamepad>/dpad/up");
         Weapon1 = Button("Weapon 1", "<Keyboard>/1", null);
         Weapon2 = Button("Weapon 2", "<Keyboard>/2", null);

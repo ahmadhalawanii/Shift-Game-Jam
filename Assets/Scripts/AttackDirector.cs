@@ -53,7 +53,7 @@ public sealed class AttackDirector
     void StartCycle()
     {
         var p = boss.PhaseData;
-        if (!boss.BindingReady && sleepwalk.Enabled && Time.time >= nextTeleport)
+        if (sleepwalk.Enabled && Time.time >= nextTeleport)
         {
             ScheduleTeleport();
             Launch(sleepwalk, 0f);
@@ -65,7 +65,7 @@ public sealed class AttackDirector
         if (first == null) { gapUntil = Time.time + 0.5f; return; }
         Launch(first, 0f);
         budget -= first.Cost;
-        if (p.overlay > 0 && budget >= 1 && !boss.BindingReady)
+        if (p.overlay > 0 && budget >= 1)
         {
             var second = Pick(w, first, p.overlay == 1 ? 1 : budget);
             if (second != null) Launch(second, p.overlay == 1 ? 0.9f : 0.15f);
@@ -79,8 +79,6 @@ public sealed class AttackDirector
         {
             if (a == sleepwalk || !a.Enabled || a.Running || a == last || !a.Fits(w) || a.Cost > maxCost) continue;
             if (other != null && a.Lane == other.Lane) continue;
-            // The finale needs absorbable seeds so the player can charge the binding.
-            if (boss.BindingReady && (a.Mode != AttackMode.Dream || a.Lane != AttackLane.Air)) continue;
             candidates.Add(a);
         }
         if (candidates.Count == 0) return null;

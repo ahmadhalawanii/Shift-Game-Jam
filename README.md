@@ -24,11 +24,11 @@ The old Level1 and its Poly Haven assets were removed (see git history). The com
 | Mouse | look (in the boss fight: small nudge only, see below) | look and aim (shards bend toward the nearest enemy) |
 | Left mouse (hold) | strike (the boss is armoured, except in the wake window) | fire a stream of shards; shoot Hunter Orbs and meteors for Power |
 | Right mouse (hold) | raise the shield and absorb seeds (Power, Resonance); release to cast a burst | aim over the shoulder (C swaps shoulder) |
-| Space | smoke dash: 2 charges, invulnerable while smoke; one dash in the air | same |
-| Left Ctrl | jump; hold while falling to hover for 0.6 s | jump (lower, no hover) |
-| Jump along a glowing wall | wall-run for up to 1.8 s, Left Ctrl to leap off | same |
-| Left Shift | shift world (during the 1.2 s swap warning: +3 Power). The swap is a wave that starts at you | same |
-| E | at Resonance x5: Lucid Pulse. In the finale: bind the Sleeper with full Power | |
+| Left Shift | smoke dash: 2 charges, invulnerable while smoke; one dash in the air | same |
+| Space | jump; hold while falling to hover for 0.6 s | jump (lower, no hover) |
+| Jump along a glowing wall | wall-run for up to 1.8 s, Space to leap off | same |
+| Q | shift world (during the 1.2 s swap warning: +3 Power). The swap is a wave that starts at you | same |
+| E | Lucid Pulse | Burst |
 | R after defeat/victory | retry | retry |
 | `[` and `]` | test only: lower and raise health | |
 

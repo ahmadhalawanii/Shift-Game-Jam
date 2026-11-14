@@ -26,18 +26,12 @@ MonoBehaviour:
     shotsPerSecond: 3
     pellets: 1
     magazine: 6
-    startReserve: 12
     reloadTime: 1.7
     range: 45
     spreadDegrees: 0.4
     falloffDistance: 0
     falloffFloor: 0.25
     weakPointMultiplier: 1.6
-    activeReloadTime: 0.9
-    sweetSpotStart: 0.42
-    sweetSpotWidth: 0.14
-    activeBuff: 1.2
-    activeBuffSeconds: 4
     heatSeconds: 3.5
     lockoutSeconds: 2.5
     lockConeDegrees: 12
@@ -51,18 +45,12 @@ MonoBehaviour:
     shotsPerSecond: 1
     pellets: 8
     magazine: 2
-    startReserve: 6
     reloadTime: 2.4
     range: 14
     spreadDegrees: 7
     falloffDistance: 9
     falloffFloor: 0.25
     weakPointMultiplier: 1
-    activeReloadTime: 1.4
-    sweetSpotStart: 0.42
-    sweetSpotWidth: 0.14
-    activeBuff: 1.2
-    activeBuffSeconds: 4
     heatSeconds: 3.5
     lockoutSeconds: 2.5
     lockConeDegrees: 12
@@ -76,18 +64,12 @@ MonoBehaviour:
     shotsPerSecond: 3
     pellets: 1
     magazine: 0
-    startReserve: 0
     reloadTime: 1.7
     range: 20
     spreadDegrees: 0.5
     falloffDistance: 0
     falloffFloor: 0.25
     weakPointMultiplier: 1
-    activeReloadTime: 0.9
-    sweetSpotStart: 0.42
-    sweetSpotWidth: 0.14
-    activeBuff: 1.2
-    activeBuffSeconds: 4
     heatSeconds: 3.5
     lockoutSeconds: 2.5
     lockConeDegrees: 12
@@ -103,10 +85,6 @@ MonoBehaviour:
   dreamDamageScale: 0.1
   windowCap: 0.15
   overCapScale: 0.4
-  wakeWindowAt: 0.1
-  wakeWindowSeconds: 4
-  lucidShotCharge: 2
-  wakeWindowGrace: 10
   weakPointOrbitDegrees: 22
   weakPointSize: 1.15
   tagSeconds: 8
@@ -126,7 +104,6 @@ MonoBehaviour:
   seedPower: 5
   perfectCatchWindow: 0.15
   perfectCatchMultiplier: 2
-  seedAmmo: {x: 1.7, y: 0.5}
   pinkSeedShare: 0.25
   seedStreamCount: 6
   thornShotPower: 3

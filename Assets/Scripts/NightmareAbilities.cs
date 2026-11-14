@@ -15,7 +15,7 @@ public class NightmareAbilities : MonoBehaviour
     void Awake() { sheet = BalanceSheet.Load(); combat = GetComponent<PlayerCombat>(); pc = GetComponent<PlayerController>(); }
     void Update()
     {
-        if (!combat.enabled || DreamcatcherPresentation.CoversHud || EclipseEncounter.Finished || pc.Recalling || WorldState.CurrentOrDream != World.Nightmare || (Boss != null && Boss.WakeActive)) return;
+        if (!combat.enabled || DreamcatcherPresentation.CoversHud || EclipseEncounter.Finished || pc.Recalling || WorldState.CurrentOrDream != World.Nightmare) return;
         if (LucidInput.Pressed(LucidInput.Ability1) && Time.time >= burstUntil && combat.SpendPower(sheet.burst.powerCost))
         {
             LucidInput.Consume(LucidInput.Ability1); burstUntil = Time.time + sheet.burst.cooldown;

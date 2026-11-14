@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // Flow movement for the memory: momentum, wide curves, dash chains and a smooth "recall" instead of a hard respawn.
-// Input comes from LucidInput: WASD moves, Space is the smoke dash, Left Ctrl jumps, Left Shift changes worlds.
+// Input comes from LucidInput: WASD moves, Space jumps, Shift dashes, Tab changes worlds.
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
@@ -56,6 +56,7 @@ public class PlayerController : MonoBehaviour
     public Vector3 checkpoint;
     public Vector3 Velocity { get { return vel; } }
     public float VerticalSpeed { get { return vy; } }
+    public void RestoreDashCharges() { charges = dashCharges; }
     public float DashCharges { get { return charges; } }   // 0..dashCharges, fractional while recharging
     public Vector3 DashDirection { get { return dashDir; } }
     public event System.Action DashStarted, DashEnded;

@@ -110,8 +110,6 @@ public class PlayerCombat : MonoBehaviour
 
     void Update()
     {
-        if (EclipseEncounter.Instance != null && EclipseEncounter.Instance.Boss != null && EclipseEncounter.Instance.Boss.WakeActive)
-        { weapons.Idle(); HideShield(); Aiming = true; return; }
         if (EclipseEncounter.Finished)
         {
             CancelBurst();

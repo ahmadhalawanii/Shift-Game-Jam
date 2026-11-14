@@ -32,11 +32,10 @@ public class LucidCombatValidation : MonoBehaviour
         var beat=typeof(EclipseBoss).GetField("beat",Private);beat.SetValue(boss,System.Enum.Parse(beat.FieldType,"Intro"));Set(boss,"remaining",999f);Set(boss,"seedsLeft",0);
         WorldState.Instance.Set(World.Dream);avatar.health=.5f;
         yield return new WaitForSeconds(.8f);
-        int ammo=c.Weapons.Reserve(0);
         Mouse(ward:true);yield return new WaitForSeconds(.04f);
         EnemyBullet.SpawnBoss(pc.transform.position+Vector3.up+Vector3.forward*.5f,Vector3.zero,0,.01f,World.Dream).HeartSeed();
         yield return new WaitForSeconds(.05f);
-        Record("Perfect Catch heals 8 HP and supplies ammo",Mathf.Abs(avatar.health-.58f)<.005f&&c.Weapons.Reserve(0)>ammo);
+        Record("Perfect Catch heals 8 HP",Mathf.Abs(avatar.health-.58f)<.005f);
         float health=avatar.health,ward=d.Ward;
         EnemyBullet.SpawnBoss(pc.transform.position+Vector3.up+Vector3.forward*.5f,Vector3.zero,0,.06f,World.Dream);
         yield return new WaitForSeconds(.05f);
@@ -49,7 +48,7 @@ public class LucidCombatValidation : MonoBehaviour
         var danger=EnemyBullet.SpawnBoss(pc.transform.position+Vector3.up+Vector3.left*4,Vector3.zero,0,.06f,World.Dream);
         Key(UnityEngine.InputSystem.Key.E);yield return new WaitForSeconds(.05f);KeysUp();
         Record("Pulse clears danger and preserves pink",pink.gameObject.activeSelf&&!danger.gameObject.activeSelf);
-        Key(UnityEngine.InputSystem.Key.Q);yield return new WaitForSeconds(.05f);KeysUp();
+        Key(UnityEngine.InputSystem.Key.LeftCtrl);yield return new WaitForSeconds(.05f);KeysUp();
         var bloomSeed=EnemyBullet.SpawnBoss(d.BloomPosition+Vector3.right*.3f,Vector3.zero,0,.01f,World.Dream).HeartSeed();
         health=avatar.health;yield return new WaitForSeconds(.5f);
         Record("Bloom draws pink and heals nearby player",!bloomSeed.gameObject.activeSelf&&avatar.health>health);
@@ -66,17 +65,15 @@ public class LucidCombatValidation : MonoBehaviour
         c.AddPower(100);Key(UnityEngine.InputSystem.Key.E);yield return new WaitForSeconds(.05f);KeysUp();
         Record("Burst spends 40 Power and staggers",Mathf.Abs(c.Power-60f)<.01f&&boss.Stunned);
         Vector3 before=pc.transform.position;
-        Key(UnityEngine.InputSystem.Key.Q);yield return new WaitForSeconds(.1f);KeysUp();
+        Key(UnityEngine.InputSystem.Key.LeftCtrl);yield return new WaitForSeconds(.1f);KeysUp();
         Record("Shadowstep moves and empowers",Vector3.Distance(before,pc.transform.position)>1f&&c.Weapons.empowered>1f);
         c.SetDread(1f);Key(UnityEngine.InputSystem.Key.F);yield return new WaitForSeconds(.05f);KeysUp();
         Record("Overdrive activates and locks phase reuse",c.Weapons.Overdrive&&!pc.GetComponent<NightmareAbilities>().DriveAvailable);
         DpsDummy.Spawn(pc.transform,sheet);
-        Set(boss,"<Phase>k__BackingField",3);Set(boss,"wakeGraceUntil",0f);boss.BeginWakeWindow();
-        var mags=(int[])typeof(PlayerWeapons).GetField("mag",Private).GetValue(c.Weapons);for(int i=0;i<mags.Length;i++)mags[i]=0;
-        Mouse(fire:true);yield return new WaitForSeconds(2.15f);
-        Record("Finisher charges in real time",boss.WakeCharge01>=1f);
-        Mouse();yield return new WaitForSecondsRealtime(.3f);
-        Record("Zero-ammo finisher reaches Dream victory",EclipseEncounter.Finished&&boss.health==0f&&WorldState.CurrentOrDream==World.Dream&&!WorldState.Instance.HoldBoundary);
+        Set(boss,"<Phase>k__BackingField",3);
+        boss.health = 1f;
+        boss.TakeDamage(14f, boss.transform.position);
+        Record("Regular damage defeats the final phase", EclipseEncounter.Finished && boss.health == 0f && WorldState.CurrentOrDream == World.Dream);
         Result=report.ToString();Debug.Log("LUCID_COMBAT_VALIDATION\n"+Result);Destroy(gameObject);
     }
     void OnDestroy() { KeysUp();Mouse();LucidInput.aimToggle=oldToggle;LucidInput.invertY=oldInvert; }

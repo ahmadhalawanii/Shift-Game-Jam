@@ -22,7 +22,7 @@ public class LucidCombatHUD : MonoBehaviour
     GameObject[] armourDashes = new GameObject[31];
     Text healthLabel, dreadLabel, ammo, weaponTitle, notice, bossName, swapLabel, popup;
     Text[] weaponLabels = new Text[3], abilityLabels = new Text[4];
-    LucidRing ward, reload, sweet, swap, charge, incoming;
+    LucidRing ward, reload, swap, charge, incoming;
     LucidRing[] cooldowns = new LucidRing[4], tags = new LucidRing[3];
     GameObject bossGroup;
     float chipValue = 1f, lastHealth = 1f, chipAt, labelAt;
@@ -55,7 +55,6 @@ public class LucidCombatHUD : MonoBehaviour
         weaponTitle = Label(right,"",new Vector2(18,116),new Vector2(270,25),16);
         ammo = Label(right,"",new Vector2(18,84),new Vector2(250,30),24);
         reload = Ring(right,new Vector2(286,100),42,3,cream);
-        sweet = Ring(right,new Vector2(286,100),50,3,new Color(.5f,1f,.8f));
         for(int i=0;i<3;i++)
         {
             weaponBacks[i] = Box(right,new Vector2(16+i*100,14),new Vector2(90,48),new Color(.15f,.12f,.23f,.85f));
@@ -152,10 +151,9 @@ public class LucidCombatHUD : MonoBehaviour
         for(int i=0;i<2;i++)charges[i].color=pc.DashCharges>=i+1?tint:new Color(.15f,.15f,.2f);
         for(int i=0;i<3;i++){weaponBacks[i].color=i==w.Index&&night?new Color(tint.r*.3f,tint.g*.3f,tint.b*.3f,.9f):new Color(.08f,.07f,.13f,.7f);weaponBacks[i].rectTransform.localScale=Vector3.one*(i==w.Index&&night?1.07f:1f);}
         reload.Fill=night?(w.Reloading?w.Reload01:w.Current.kind==WeaponKind.Chain?w.Heat01:0f):dream.Draw01;
-        sweet.Fill=night&&w.Reloading?w.Current.sweetSpotWidth:0f;sweet.startDegrees=90-360*w.Current.sweetSpotStart;sweet.SetVerticesDirty();
-        reload.color=tint;charge.Fill=boss!=null&&boss.WakeActive?boss.WakeCharge01:dream.Draw01;
+        reload.color=tint;charge.Fill=dream.Draw01;
         incoming.Fill=EnemyBullet.PinkNearby(transform.position,8f)&&!night?1f:0f;
-        popup.text=Time.unscaledTime-dream.PerfectAt<.8f?"PERFECT CATCH":boss!=null&&boss.WakeActive?"HOLD • CHARGE • RELEASE":"";
+        popup.text=Time.unscaledTime-dream.PerfectAt<.8f?"PERFECT CATCH":"";
         bossGroup.SetActive(boss!=null&&boss.Engaged);
         if(boss!=null&&boss.Engaged)
         {
@@ -166,9 +164,9 @@ public class LucidCombatHUD : MonoBehaviour
         if(Time.unscaledTime<labelAt)return;labelAt=Time.unscaledTime+.1f;
         healthLabel.text="HEALTH  "+Mathf.RoundToInt(h*100);dreadLabel.text="DREAD  ×"+combat.DreadMultiplier.ToString("F2");
         weaponTitle.text=night?w.Current.name.ToUpper():"LUMEN BOW  /  "+(boss!=null&&boss.WeakPoints!=null?boss.WeakPoints.TagCount:0)+" TAGS";
-        ammo.text=!night?"DRAW • TAG • SHIFT":w.Current.kind==WeaponKind.Chain?(w.Overheated?"COOLING":"HEAT "+Mathf.RoundToInt(w.Heat01*100)+"%"):w.Mag(w.Index)+" / "+w.Reserve(w.Index)+(w.Reloading?"  "+LucidInput.Label(LucidInput.Reload):"");
+        ammo.text=!night?"DRAW • TAG • SHIFT":w.Current.kind==WeaponKind.Chain?(w.Overheated?"COOLING":"HEAT "+Mathf.RoundToInt(w.Heat01*100)+"%"):w.Mag(w.Index)+" / ∞"+(w.Reloading?"  RELOADING":"");
         ammo.color=night&&w.Current.magazine>0&&w.Mag(w.Index)==0?Color.Lerp(ember,Color.white,Mathf.PingPong(Time.time*3,1)):tint;
         notice.text=EclipseEncounter.Instance!=null?EclipseEncounter.Instance.Notice:"";
-        if(boss!=null){bossName.text="THE SLEEPER / PHASE "+boss.Phase+" / "+(boss.WakeActive?"WAKE WINDOW":night?"EXPOSED":"ARMOURED");swapLabel.text=LucidInput.Label(LucidInput.SwapStance)+"  "+boss.SwapSeconds.ToString("F1")+"s";}
+        if(boss!=null){bossName.text="THE SLEEPER / PHASE "+boss.Phase+" / "+(night?"EXPOSED":"ARMOURED");swapLabel.text=LucidInput.Label(LucidInput.SwapStance)+"  "+boss.SwapSeconds.ToString("F1")+"s";}
     }
 }

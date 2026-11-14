@@ -377,7 +377,7 @@ public sealed class DreamcatcherPresentation : MonoBehaviour
         ClearPanel(true);
         AddText("CONTROLS", 44, 60, ivory);
         AddText(LucidInput.Label(LucidInput.Move)+"  Move / "+LucidInput.Label(LucidInput.Look)+"  Look\n"+
-            LucidInput.Label(LucidInput.Fire)+"  Draw bow / fire / charge finisher\n"+
+            LucidInput.Label(LucidInput.Fire)+"  Draw bow / fire\n"+
             LucidInput.Label(LucidInput.Aim)+"  Ward / aim    •    "+LucidInput.Label(LucidInput.SwapShoulder)+"  Shoulder\n"+
             LucidInput.Label(LucidInput.Dash)+"  Dash    •    "+LucidInput.Label(LucidInput.Jump)+"  Jump\n"+
             LucidInput.Label(LucidInput.SwapStance)+"  Shift    •    "+LucidInput.Label(LucidInput.Reload)+"  Reload\n"+

@@ -16,17 +16,6 @@ public class WorldState : MonoBehaviour
 
     public World Current { get; private set; } = World.Dream;
     public float Mix { get; private set; }
-    bool holdBoundary;
-    public bool HoldBoundary
-    {
-        get => holdBoundary;
-        set
-        {
-            if (holdBoundary && !value) { Mix = target; transitioning = false; }
-            holdBoundary = value;
-        }
-    }
-
     [Header("Tuning")]
     [Min(0.05f)] public float transitionTime = 0.72f;
     public float swapCooldown = 0.4f;
@@ -60,7 +49,6 @@ public class WorldState : MonoBehaviour
 
     public void Set(World w)
     {
-        if (HoldBoundary) return;
         if (w == Current) return;
         Current = w;
         LucidAudio.Play(LucidAudio.Cue.Shift);
@@ -77,7 +65,6 @@ public class WorldState : MonoBehaviour
 
     void Update()
     {
-        if (HoldBoundary) { Mix = .5f; if (look != null) look.Apply(.5f, 0f, 0f); return; }
         float pulse = 0f;
 
         if (transitioning)

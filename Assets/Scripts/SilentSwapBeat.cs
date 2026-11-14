@@ -30,7 +30,7 @@ public class SilentSwapBeat : MonoBehaviour
     }
     void Update()
     {
-        bool next=boss.Engaged&&!boss.WakeActive&&!EclipseEncounter.Finished&&boss.SwapWarning&&boss.SwapSeconds<=.5f;
+        bool next=boss.Engaged&&!EclipseEncounter.Finished&&boss.SwapWarning&&boss.SwapSeconds<=.5f;
         if(next!=quiet)
         {
             quiet=next;

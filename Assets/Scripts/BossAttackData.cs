@@ -9,14 +9,15 @@ public class BossAttackData : ScriptableObject
     [Tooltip("Scales speeds and counts up, telegraphs down.")]
     [Range(0.7f, 1.5f)] public float difficulty = 1f;
     public float bossHealth = 900f;
-    [Tooltip("Player weapons were tuned for a 300 hp boss. Incoming damage is multiplied by this.")]
-    public float playerDamageScale = 1.5f;
+    [Tooltip("Player weapons were tuned for a 300 hp boss. Incoming damage is multiplied by this. " +
+        "1 = the fight is three times longer than the old 300 hp version; the Nightmare multiplier and Lucid Pulse make up some of it.")]
+    public float playerDamageScale = 1f;
 
     public BossPhaseData[] phases =
     {
-        new BossPhaseData { swapInterval = 9f, budget = 2, teleportMin = 18f, teleportMax = 25f, sigilTime = 0.9f, gapMin = 1.1f, gapMax = 1.7f, overlay = 0, telegraphScale = 1f },
-        new BossPhaseData { swapInterval = 6f, budget = 3, teleportMin = 14f, teleportMax = 20f, sigilTime = 0.75f, gapMin = 0.9f, gapMax = 1.4f, overlay = 1, telegraphScale = 0.9f },
-        new BossPhaseData { swapInterval = 3.5f, budget = 4, teleportMin = 10f, teleportMax = 14f, sigilTime = 0.6f, gapMin = 0.7f, gapMax = 1.1f, overlay = 2, telegraphScale = 0.8f },
+        new BossPhaseData { swapInterval = 9f, budget = 2, teleportMin = 18f, teleportMax = 25f, sigilTime = 0.9f, gapMin = 0.7f, gapMax = 1.1f, overlay = 0, telegraphScale = 1f },
+        new BossPhaseData { swapInterval = 6f, budget = 3, teleportMin = 14f, teleportMax = 20f, sigilTime = 0.75f, gapMin = 0.55f, gapMax = 0.9f, overlay = 1, telegraphScale = 0.9f },
+        new BossPhaseData { swapInterval = 3.5f, budget = 4, teleportMin = 10f, teleportMax = 14f, sigilTime = 0.6f, gapMin = 0.45f, gapMax = 0.75f, overlay = 2, telegraphScale = 0.8f },
     };
 
     [Header("Sleepwalk teleport")]

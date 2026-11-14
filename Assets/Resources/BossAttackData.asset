@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   difficulty: 1
   bossHealth: 900
-  playerDamageScale: 1.5
+  playerDamageScale: 1
   phases:
   - swapInterval: 9
     budget: 2
     overlay: 0
-    gapMin: 1.1
-    gapMax: 1.7
+    gapMin: 0.7
+    gapMax: 1.1
     teleportMin: 18
     teleportMax: 25
     sigilTime: 0.9
@@ -28,8 +28,8 @@ MonoBehaviour:
   - swapInterval: 6
     budget: 3
     overlay: 1
-    gapMin: 0.9
-    gapMax: 1.4
+    gapMin: 0.55
+    gapMax: 0.9
     teleportMin: 14
     teleportMax: 20
     sigilTime: 0.75
@@ -37,8 +37,8 @@ MonoBehaviour:
   - swapInterval: 3.5
     budget: 4
     overlay: 2
-    gapMin: 0.7
-    gapMax: 1.1
+    gapMin: 0.45
+    gapMax: 0.75
     teleportMin: 10
     teleportMax: 14
     sigilTime: 0.6

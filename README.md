@@ -20,12 +20,26 @@ You are a fading memory fighting through a dream that keeps flipping into a nigh
 |---|---|---|
 | WASD | move | move |
 | Mouse | look | look and aim (shards bend toward the nearest enemy) |
-| Left mouse (hold) | raise shield, absorb enemy orbs to charge Power | fire a stream of shards |
-| Space | dash (brief invulnerability, chain dashes for speed) | same |
-| Shift or right mouse | swap world | swap world |
-| E | burst requires Nightmare | spend full Power on a damaging pulse that clears nearby orbs |
-| R after defeat/victory | restart Level 1 | restart Level 1 |
+| Left mouse (hold) | strike (the boss is armoured, except in the wake window) | fire a stream of shards; shoot Hunter Orbs and meteors for Power |
+| Right mouse (hold, release) | raise the shield and absorb seeds (Power, Resonance); release to cast a burst | charge and release a heavy burst |
+| Shift | dash (brief invulnerability, chain dashes for speed) | same |
+| Space | jump (hops ground shockwaves) | same |
+| Q | shift world (during the 1.2 s swap warning: +3 Power) | same |
+| E | at Resonance x5: Lucid Pulse. In the finale: bind the Sleeper with full Power | |
+| Tab | focus the boss | |
+| R after defeat/victory | retry | retry |
 | `[` and `]` | test only: lower and raise memory (health) | |
+
+Debug keys (editor and development builds only; pressing one before the fight drops you into the arena):
+
+| Key | Action |
+|---|---|
+| 1, 2, 3 | jump to boss phase |
+| N | force a world swap |
+| T | force a Sleepwalk teleport |
+| C | cycle through every attack one by one (the spec says A, but A strafes) |
+| K | kill the boss |
+| H | toggle hitbox drawing (turn Gizmos on in the Game view) |
 
 ## Where things are
 
@@ -50,6 +64,10 @@ You are a fading memory fighting through a dream that keeps flipping into a nigh
 Working: Dream and Nightmare look, world swap, flow movement, dash, recall, Nightmare shooting, Dream shield and absorb, wisp enemies, animated memory figure.
 Gameplay implementation added: the Eclipse encounter, Power burst, timed-shift rewards, defeat/victory and R to retry. C# compilation checked; gameplay balance and visuals still require playtesting. Sound/music, a main menu and the itch.io build remain unfinished.
 Known problems: the player figure and wisps over-brighten under bloom, the Dream still lacks painterly trees, white ruins and a distant giant creature, Nightmare ground reads pale, the wisteria arches are heavy on the GPU. Combat feel has not been tuned by hand yet. Feel values are public fields on `PlayerController`, `PlayerCombat`, `ThirdPersonCamera`, `WispEnemy`.
+
+## Boss fight
+
+The Sleeper has 900 health, three phases, 18 attacks across ground, air, sky and homing lanes, and a Sleepwalk teleport with a wake window. Dream has Resonance, Lucid Pulse and gold seeds. Nightmare has a damage multiplier and Dread. All tunables are in `Assets/Resources/BossAttackData.asset` (menu **Lucid > Build Boss Attack Data**). Full list: [BOSS_ATTACKS.md](BOSS_ATTACKS.md).
 
 ## Game design in one paragraph
 

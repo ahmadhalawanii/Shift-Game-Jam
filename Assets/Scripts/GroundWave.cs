@@ -15,7 +15,7 @@ public class GroundWave : MonoBehaviour
     Material material;
     Transform target;
     PlayerController controller;
-    float speed, radius, previousSeparation;
+    float speed, radius, previousSeparation, damage;
     bool resolved;
     float heading, halfArc;
 
@@ -24,14 +24,15 @@ public class GroundWave : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() { Active.Clear(); }
 
-    public static void Spawn(Vector3 origin, Transform player, float travelSpeed, float heading = 0f, float halfArc = 180f)
+    public static void Spawn(Vector3 origin, Transform player, float travelSpeed, float heading = 0f, float halfArc = 180f, float damage = 0.16f, Color? tint = null)
     {
-        if (EclipseEncounter.Finished || player == null || Active.Count >= 4) return;
+        if (EclipseEncounter.Finished || player == null || Active.Count >= 6) return;
         var wave = new GameObject("Crimson tide - dash through").AddComponent<GroundWave>();
         wave.transform.position = new Vector3(origin.x, 0.18f, origin.z);
         wave.heading = heading;
         wave.halfArc = Mathf.Clamp(halfArc, 5f, 180f);
         wave.target = player;
+        wave.damage = damage;
         wave.controller = player.GetComponent<PlayerController>();
         wave.speed = Mathf.Clamp(travelSpeed, 6f, 18f);
         wave.previousSeparation = HorizontalDistance(player.position, wave.transform.position);
@@ -41,8 +42,9 @@ public class GroundWave : MonoBehaviour
         if (wave.material.HasProperty("_Trail")) wave.material.SetFloat("_Trail", 1f);
         if (wave.material.HasProperty("_Color")) wave.material.SetColor("_Color", Color.white);
         if (wave.material.HasProperty("_BaseColor")) wave.material.SetColor("_BaseColor", new Color(1f, 0.07f, 0.12f));
-        wave.rim = wave.CreateRing("Leading edge", 0.34f, new Color(2f, 0.08f, 0.14f, 1f));
-        wave.glow = wave.CreateRing("Soft ground glow", 1.5f, new Color(0.8f, 0.015f, 0.045f, 0.35f));
+        Color c = tint ?? new Color(1f, 0.04f, 0.07f);
+        wave.rim = wave.CreateRing("Leading edge", 0.34f, new Color(c.r * 2f, c.g * 2f, c.b * 2f, 1f));
+        wave.glow = wave.CreateRing("Soft ground glow", 1.5f, new Color(c.r * 0.8f, c.g * 0.8f, c.b * 0.8f, 0.35f));
     }
 
     LineRenderer CreateRing(string label, float width, Color color)
@@ -94,7 +96,7 @@ public class GroundWave : MonoBehaviour
             float yaw = Mathf.Atan2(offset.x, offset.z) * Mathf.Rad2Deg;
             if (controller != null && target.position.y < WaveHeight &&
                 Mathf.Abs(Mathf.DeltaAngle(heading, yaw)) <= halfArc)
-                controller.Damage(0.16f);
+                controller.Damage(damage);
         }
         previousSeparation = separation;
     }

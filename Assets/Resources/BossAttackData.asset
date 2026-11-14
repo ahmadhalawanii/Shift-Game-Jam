@@ -1,0 +1,221 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2af9886ac4b74720a1a2e419a998644, type: 3}
+  m_Name: BossAttackData
+  m_EditorClassIdentifier: 
+  difficulty: 1
+  bossHealth: 900
+  playerDamageScale: 1.5
+  phases:
+  - swapInterval: 9
+    budget: 2
+    overlay: 0
+    gapMin: 1.1
+    gapMax: 1.7
+    teleportMin: 18
+    teleportMax: 25
+    sigilTime: 0.9
+    telegraphScale: 1
+  - swapInterval: 6
+    budget: 3
+    overlay: 1
+    gapMin: 0.9
+    gapMax: 1.4
+    teleportMin: 14
+    teleportMax: 20
+    sigilTime: 0.75
+    telegraphScale: 0.9
+  - swapInterval: 3.5
+    budget: 4
+    overlay: 2
+    gapMin: 0.7
+    gapMax: 1.1
+    teleportMin: 10
+    teleportMax: 14
+    sigilTime: 0.6
+    telegraphScale: 0.8
+  sleepwalkDreamDamage: 12
+  sleepwalkNightmareDamage: 18
+  slamRadius: 4.5
+  sleepwalkDistance: 5
+  wakeWindow: 1.2
+  sleepwalkBurstCount: 12
+  absorbsPerResonance: 4
+  lucidPulseDamage: 60
+  lucidPulseRadius: 12
+  goldSeedChance: 0.12
+  goldSeedHeal: 0.05
+  multiplierRampSeconds: 10
+  maxDamageMultiplier: 2
+  dreadFillSeconds: 14
+  dreadDrainSeconds: 5
+  dreadDamage: 8
+  shootPowerRefund: 0.5
+  swapTelegraph: 1.2
+  shiftRewardPower: 3
+  shiftRewardClearRadius: 7
+  squeezeFrom: 20
+  squeezeTo: 13
+  squeezeSeconds: 20
+  attacks:
+  - id: lullaby_spiral
+    enabled: 1
+    damage: 7.5
+    speed: 5.5
+    count: 4
+    telegraph: 0.7
+    duration: 2.4
+    cost: 1
+  - id: hex_garden
+    enabled: 1
+    damage: 14
+    speed: 0
+    count: 3
+    telegraph: 0.9
+    duration: 0.35
+    cost: 2
+  - id: starfall
+    enabled: 1
+    damage: 12
+    speed: 20
+    count: 6
+    telegraph: 0.8
+    duration: 3
+    cost: 1
+  - id: tether_seeds
+    enabled: 1
+    damage: 7.5
+    speed: 3.6
+    count: 4
+    telegraph: 0.8
+    duration: 4
+    cost: 1
+  - id: tendril_slam
+    enabled: 1
+    damage: 10
+    speed: 9
+    count: 2
+    telegraph: 0.8
+    duration: 0.5
+    cost: 1
+  - id: bloom_ring
+    enabled: 1
+    damage: 7.5
+    speed: 6
+    count: 24
+    telegraph: 0.7
+    duration: 0.7
+    cost: 1
+  - id: seed_halo
+    enabled: 1
+    damage: 7.5
+    speed: 8.5
+    count: 4
+    telegraph: 0.9
+    duration: 0.52
+    cost: 1
+  - id: twin_helix
+    enabled: 1
+    damage: 7.5
+    speed: 8.5
+    count: 34
+    telegraph: 0.9
+    duration: 0.11
+    cost: 1
+  - id: night_terror_fan
+    enabled: 1
+    damage: 12
+    speed: 13
+    count: 7
+    telegraph: 0.6
+    duration: 0.45
+    cost: 1
+  - id: prism_beams
+    enabled: 1
+    damage: 16
+    speed: 32
+    count: 4
+    telegraph: 0.7
+    duration: 3.2
+    cost: 2
+  - id: shatter_grid
+    enabled: 1
+    damage: 15
+    speed: 0
+    count: 4
+    telegraph: 0.9
+    duration: 0.3
+    cost: 2
+  - id: hunter_orbs
+    enabled: 1
+    damage: 10
+    speed: 6.5
+    count: 3
+    telegraph: 0.7
+    duration: 3
+    cost: 1
+  - id: eclipse_meteors
+    enabled: 1
+    damage: 14
+    speed: 30
+    count: 5
+    telegraph: 0.6
+    duration: 3
+    cost: 1
+  - id: whip_tendrils
+    enabled: 1
+    damage: 15
+    speed: 14
+    count: 2
+    telegraph: 0.8
+    duration: 0.9
+    cost: 1
+  - id: thorn_burst
+    enabled: 1
+    damage: 12
+    speed: 9
+    count: 16
+    telegraph: 0.8
+    duration: 0.45
+    cost: 1
+  - id: tracking_beams
+    enabled: 1
+    damage: 10
+    speed: 0
+    count: 2
+    telegraph: 1
+    duration: 0.25
+    cost: 1
+  - id: mandala_bloom
+    enabled: 1
+    damage: 9
+    speed: 5
+    count: 20
+    telegraph: 0.9
+    duration: 0.55
+    cost: 2
+  - id: petal_blade
+    enabled: 1
+    damage: 13
+    speed: 10
+    count: 1
+    telegraph: 1
+    duration: 0
+    cost: 2
+  - id: sleepwalk
+    enabled: 1
+    damage: 0
+    speed: 0
+    count: 3
+    telegraph: 0.9
+    duration: 0.35
+    cost: 3

@@ -200,7 +200,7 @@ public class PlayerController : MonoBehaviour
         {
             Vector3 offset = transform.position - EclipseEncounter.ArenaCenter;
             offset.y = 0f;
-            float limit = (encounter.Boss != null && encounter.Boss.Phase == 3 ? EclipseArena.FusedRadius : EclipseEncounter.ArenaRadius) - cc.radius;
+            float limit = EclipseArena.SqueezeRadius - cc.radius;
             if (offset.sqrMagnitude > limit * limit)
             {
                 Vector3 correction = offset.normalized * limit - offset;

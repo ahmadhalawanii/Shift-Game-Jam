@@ -26,20 +26,28 @@ public static class CombatAssets
     }
 }
 
-// Particle bursts.
+// Particle bursts. One scene-owned world-space system emits every burst, so nothing is instantiated per hit.
 public static class Fx
 {
+    static ParticleSystem system;
     public static void Burst(Vector3 pos, Color color, int count)
     {
-        var go = CombatAssets.Spawn("GlowBurst", pos, Quaternion.identity);
-        if (go == null) return;
-        var ps = go.GetComponent<ParticleSystem>();
-        if (ps == null) return;
-        var main = ps.main;
-        main.startColor = color;
-        var em = ps.emission;
-        em.SetBurst(0, new ParticleSystem.Burst(0f, (short)Mathf.Clamp(count, 1, 400)));
-        ps.Play();
+        if (system == null)
+        {
+            var go = CombatAssets.Spawn("GlowBurst", pos, Quaternion.identity);
+            if (go == null) return;
+            system = go.GetComponent<ParticleSystem>();
+            if (system == null) return;
+            var main = system.main;
+            main.stopAction = ParticleSystemStopAction.None;
+            main.maxParticles = 6000;
+            main.loop = true;
+            var em = system.emission;
+            em.enabled = false;
+            system.Play();
+        }
+        var p = new ParticleSystem.EmitParams { position = pos, startColor = color, applyShapeToPosition = true };
+        system.Emit(p, Mathf.Clamp(count, 1, 400));
     }
 }
 

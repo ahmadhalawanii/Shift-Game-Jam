@@ -20,6 +20,11 @@ public class PlayerCombat : MonoBehaviour
     [Min(0f)] public float burstCooldown = 0.55f;
 
     public float Power { get; private set; }
+    // Dream combo: consecutive absorbs without being hit. Level 1..5; at 5 a Lucid Pulse is ready.
+    public int ResonanceLevel => 1 + Mathf.Min(4, resonanceAbsorbs / Mathf.Max(1, BossAttackData.Load().absorbsPerResonance));
+    public bool LucidPulseReady => ResonanceLevel >= 5;
+    int resonanceAbsorbs;
+    float resonanceSince;
     public bool ShieldUp { get; private set; }
     public bool Firing { get { return Time.time - lastShot < 0.18f; } }
     public bool HeavyCast { get; private set; }
@@ -38,6 +43,9 @@ public class PlayerCombat : MonoBehaviour
     float chargeAge;
     float nextBurst;
     BurstVisual chargingVisual;
+    Renderer shieldRenderer;
+    MaterialPropertyBlock shieldBlock;
+    static readonly int ShieldColorId = Shader.PropertyToID("_Color");
 
     void Start()
     {
@@ -50,7 +58,23 @@ public class PlayerCombat : MonoBehaviour
             shield.transform.SetParent(transform, false);
             shield.transform.localPosition = new Vector3(0, 1f, 0);
             shield.transform.localScale = Vector3.zero;
+            shieldRenderer = shield.GetComponentInChildren<Renderer>();
+            shieldBlock = new MaterialPropertyBlock();
         }
+    }
+
+    public void ResetResonance()
+    {
+        resonanceAbsorbs = 0;
+        resonanceSince = Time.time;
+    }
+
+    // Tether seeds and gold seeds add Power and heal on top of a normal absorb.
+    public void OnGoldAbsorb(Vector3 where, float bonusPower, float heal)
+    {
+        AddPower(bonusPower);
+        if (avatar != null) avatar.memory = Mathf.Min(1f, avatar.memory + heal);
+        Fx.Burst(where, new Color(1f, 0.85f, 0.3f), 22);
     }
 
     void Update()
@@ -86,6 +110,7 @@ public class PlayerCombat : MonoBehaviour
         }
 
         ShieldUp = w == World.Dream && IsChargingBurst && mouse.rightButton.isPressed;
+        if (pc != null && pc.LastHitTime > resonanceSince && resonanceAbsorbs > 0) ResetResonance();
         Kick = Mathf.MoveTowards(Kick, 0f, 9f * Time.deltaTime);
         bool striking = mouse.leftButton.isPressed && !IsChargingBurst;
         if (striking || IsChargingBurst) FaceAim();
@@ -93,6 +118,12 @@ public class PlayerCombat : MonoBehaviour
 
         if (shield != null)
         {
+            if (shieldRenderer != null)
+            {
+                float r = (ResonanceLevel - 1) / 4f;
+                shieldBlock.SetColor(ShieldColorId, Color.Lerp(new Color(0.3f, 0.9f, 1f), new Color(1f, 0.92f, 0.55f), r) * (1f + r * 1.5f));
+                shieldRenderer.SetPropertyBlock(shieldBlock);
+            }
             shieldScale = Mathf.MoveTowards(shieldScale, ShieldUp ? shieldRadius * 2f : 0f, 30f * Time.deltaTime);
             shield.transform.localScale = Vector3.one * shieldScale;
             shield.SetActive(shieldScale > 0.001f);
@@ -208,6 +239,9 @@ public class PlayerCombat : MonoBehaviour
     public void OnAbsorb(Vector3 where)
     {
         Power = Mathf.Min(maxPower, Power + 1f);
+        int before = ResonanceLevel;
+        resonanceAbsorbs++;
+        if (ResonanceLevel != before) LucidAudio.PlayResonance(ResonanceLevel);
         if (avatar != null)
         {
             avatar.memory = Mathf.Min(1f, avatar.memory + 0.012f);

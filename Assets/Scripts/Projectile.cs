@@ -51,6 +51,12 @@ public class Projectile : MonoBehaviour
         life -= Time.deltaTime;
         if (life <= 0f) { Destroy(gameObject); return; }
 
+        if (EnemyBullet.Shoot(from, transform.position, BossAttackData.Load().shootPowerRefund))
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         // Sweep against enemies along this frame's segment so fast shards never tunnel.
         for (int i = 0; i < Enemy.All.Count; i++)
         {

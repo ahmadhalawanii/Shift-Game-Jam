@@ -12,6 +12,10 @@ public sealed class EclipseArena : MonoBehaviour
     EclipseBoss boss;
     public const float FusedRadius = 22f;
     public const float CoreRadius = 6f;
+    // Current outer wall. Phase 3 contracts it from BossAttackData.squeezeFrom to squeezeTo.
+    public static float SqueezeRadius { get; private set; } = EclipseEncounter.ArenaRadius;
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() { SqueezeRadius = EclipseEncounter.ArenaRadius; }
     const float TellSeconds = 1.4f;
     const float StrikeSeconds = 0.32f;
     const float RuneRadius = 3.4f;
@@ -128,6 +132,14 @@ public sealed class EclipseArena : MonoBehaviour
         bool fused = boss != null && boss.Phase == 3;
         anchor.SetActive(dream && boss != null && boss.Engaged);
         fracture.enabled = fused;
+        if (fused)
+        {
+            var data = BossAttackData.Load();
+            float k = Mathf.Clamp01((Time.time - boss.Phase3Since) / Mathf.Max(1f, data.squeezeSeconds));
+            SqueezeRadius = Mathf.Lerp(data.squeezeFrom, data.squeezeTo, k);
+            fracture.transform.localScale = Vector3.one * (SqueezeRadius / FusedRadius);
+        }
+        else SqueezeRadius = EclipseEncounter.ArenaRadius;
         boundary.enabled = !fused;
         coreBoundary.enabled = boss != null && boss.Engaged;
         UpdateHazards(dream);
@@ -142,7 +154,7 @@ public sealed class EclipseArena : MonoBehaviour
 
     void UpdateHazards(bool dream)
     {
-        bool suspended = boss == null || !boss.Engaged || boss.InTransformation || boss.BindingReady ||
+        bool suspended = boss == null || !boss.Engaged || boss.InTransformation || boss.BindingReady || boss.Teleporting ||
             EclipseEncounter.Finished || player == null || player.Recalling;
         if (suspended)
         {
@@ -198,7 +210,7 @@ public sealed class EclipseArena : MonoBehaviour
         Vector3 offset = player.transform.position - EclipseEncounter.ArenaCenter;
         offset.y = 0f;
         Vector3 direction = offset.sqrMagnitude > 0.01f ? offset.normalized : Vector3.back;
-        float limit = boss.Phase == 3 ? FusedRadius : EclipseEncounter.ArenaRadius;
+        float limit = SqueezeRadius;
         float distance = Mathf.Clamp(offset.magnitude, CoreRadius + 2f, limit - 1f);
         for (int i = 0; i < activeRunes; i++)
         {

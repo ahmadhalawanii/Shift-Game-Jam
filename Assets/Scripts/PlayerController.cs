@@ -128,7 +128,7 @@ public class PlayerController : MonoBehaviour
         if (recalling) return;
         if (dashLeft > 0f || Time.time - lastDashEnd < dashGrace) return;
         if (Time.time < invulnUntil) return;
-        invulnUntil = Time.time + 0.35f;
+        invulnUntil = Time.time + BalanceSheet.Load().hitImmunity;
         LastHitTime = Time.time;
         if (avatar != null)
         {
@@ -291,7 +291,7 @@ public class PlayerController : MonoBehaviour
         Vector3 fwd = cameraTransform != null ? Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up).normalized : Vector3.forward;
         // Boss lock-on: W/S move toward and away from the boss, A/D strafe around it.
         Vector3 toBoss = BossDirection();
-        if (ThirdPersonCamera.LockedOn && toBoss.sqrMagnitude > 0.01f) fwd = toBoss;
+        if (ThirdPersonCamera.LockedOn && !ThirdPersonCamera.Aiming && toBoss.sqrMagnitude > 0.01f) fwd = toBoss;
         Vector3 right = Vector3.Cross(Vector3.up, fwd);
         Vector3 wish = fwd * input.y + right * input.x;
         bool hasWish = wish.sqrMagnitude > 0.01f;
@@ -428,7 +428,7 @@ public class PlayerController : MonoBehaviour
         }
 
         // Face the boss when locked on, the aim point when aiming, otherwise the way we move.
-        Vector3 flat = ThirdPersonCamera.LockedOn && toBoss.sqrMagnitude > 0.01f ? toBoss : ThirdPersonCamera.Aiming && !WallRunning ? fwd : (WallRunning ? wallTangent : vel); flat.y = 0f;
+        Vector3 flat = ThirdPersonCamera.Aiming && !WallRunning ? fwd : ThirdPersonCamera.LockedOn && toBoss.sqrMagnitude > 0.01f ? toBoss : (WallRunning ? wallTangent : vel); flat.y = 0f;
         if (flat.sqrMagnitude > 0.5f)
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(flat), 10f * Time.deltaTime);
 

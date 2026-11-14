@@ -25,7 +25,24 @@ public class PlayerCombat : MonoBehaviour
     int resonanceAbsorbs;
     float resonanceSince;
     public bool ShieldUp { get; private set; }
-    public bool Firing { get { return Time.time - lastShot < 0.18f; } }
+    public bool Firing { get { return Time.time - lastShot < 0.18f || (weapons != null && weapons.Firing); } }
+    public PlayerWeapons Weapons { get { return weapons; } }
+    // Dread: 0..1, built by dealing damage in Nightmare, cut when hit. It multiplies Nightmare weapon damage.
+    public float Dread { get; private set; }
+    public float DreadMultiplier
+    {
+        get
+        {
+            var b = BalanceSheet.Load();
+            bool fight = EclipseEncounter.Instance != null && EclipseEncounter.Instance.BossFightStarted;
+            return Mathf.Min(1f + (b.dreadMaxMultiplier - 1f) * Dread, fight ? b.dreadMaxMultiplier : b.dreadGateMultiplier);
+        }
+    }
+    public void AddDread(float damage) { Dread = Mathf.Clamp01(Dread + damage / Mathf.Max(1f, BalanceSheet.Load().dreadDamageToFill)); }
+    public void SetDread(float value) { Dread = Mathf.Clamp01(value); }
+    public void KickNow() { Kick = 1f; }
+    PlayerWeapons weapons;
+    float dreadHitSeen;
     public bool HeavyCast { get; private set; }
     public float Kick { get; private set; }
     public float ShieldRadius { get { return shieldRadius; } }
@@ -53,6 +70,8 @@ public class PlayerCombat : MonoBehaviour
     void Start()
     {
         pc = GetComponent<PlayerController>();
+        weapons = GetComponent<PlayerWeapons>();
+        if (weapons == null) weapons = gameObject.AddComponent<PlayerWeapons>();
         avatar = GetComponentInChildren<MemoryAvatar>();
         cam = Camera.main;
         shield = CombatAssets.Spawn("Shield", transform.position, Quaternion.identity);
@@ -97,13 +116,17 @@ public class PlayerCombat : MonoBehaviour
         if ((pc != null && pc.Recalling) || (avatar != null && avatar.health <= 0f))
         {
             Aiming = false;
+            weapons.Idle();
             CancelBurst();
             HideShield();
             return;
         }
 
         bool aimHeld = LucidInput.AimHeld;
-        Aiming = w == World.Nightmare && aimHeld;
+        // In the boss fight, firing also brings up the free-aim shoulder camera: the lock-on view never aims for you.
+        Aiming = w == World.Nightmare && (aimHeld || (ThirdPersonCamera.LockedOn && weapons.Firing));
+        if (pc != null && pc.LastHitTime > dreadHitSeen) { dreadHitSeen = pc.LastHitTime; Dread *= BalanceSheet.Load().dreadKeptOnHit; }
+        if (w == World.Nightmare) weapons.Tick(); else weapons.Idle();
         if (w == World.Nightmare && IsChargingBurst) CancelBurst();
         if (w == World.Dream && aimHeld && !IsChargingBurst && Time.time >= nextBurst)
         {
@@ -123,7 +146,7 @@ public class PlayerCombat : MonoBehaviour
         ShieldUp = w == World.Dream && IsChargingBurst && aimHeld;
         if (pc != null && pc.LastHitTime > resonanceSince && resonanceAbsorbs > 0) ResetResonance();
         Kick = Mathf.MoveTowards(Kick, 0f, 9f * Time.deltaTime);
-        bool striking = LucidInput.Fire.IsPressed() && !IsChargingBurst;
+        bool striking = w == World.Dream && LucidInput.Fire.IsPressed() && !IsChargingBurst;
         if (striking || IsChargingBurst || Aiming) FaceAim();
         if (striking && Time.time >= nextShot) Fire(false);
 
@@ -141,7 +164,7 @@ public class PlayerCombat : MonoBehaviour
         }
     }
 
-    Vector3 FlatAim()
+    public Vector3 FlatAim()
     {
         Vector3 f = cam != null ? cam.transform.forward : transform.forward;
         // The aim camera sits off the shoulder: shoot at the point under the crosshair, not parallel to the view.
@@ -181,7 +204,7 @@ public class PlayerCombat : MonoBehaviour
         Vector3 aim = FlatAim();
         Vector3 right = Vector3.Cross(Vector3.up, aim);
         Vector3 origin = transform.position + Vector3.up * 1.2f + aim * 0.7f + right * (heavy ? 0.48f : -0.48f);
-        Enemy target = FindTarget(aim, origin);
+        Enemy target = null;   // no aim assist: shots go where the crosshair points
         Vector3 dir = aim;
         if (target != null)
         {

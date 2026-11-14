@@ -26,7 +26,7 @@ public class ThirdPersonCamera : MonoBehaviour
     public float aimFov = 57f;
     public float aimBlend = 0.2f;
     public float aimLookScale = 0.7f;       // mouse look is slower while aiming
-    [Range(0f, 1f)] public float aimBossScreenY = 0.68f; // locked on: the boss core sits here (upper middle)
+    public float aimMinPitch = -40f;        // how far up the aim camera can look
     public float shoulderSwapTime = 0.15f;
 
     public static ThirdPersonCamera Instance;
@@ -101,12 +101,12 @@ public class ThirdPersonCamera : MonoBehaviour
         if (finished && LockWeight <= 0f) return;
 
         // While locked, the free camera follows the lock's yaw so the blend back starts behind the player.
-        if (LockWeight > 0f) yaw = lockYaw;
-        if (LockWeight <= 0f)
+        if (LockWeight > 0f && aimT <= 0f) yaw = lockYaw;
+        if (LockWeight <= 0f || aimT > 0f)
         {
             Vector2 d = LucidInput.LookDelta * Mathf.Lerp(1f, aimLookScale, AimWeight);
             yaw += d.x;
-            pitch = Mathf.Clamp(pitch - d.y, minPitch, maxPitch);
+            pitch = Mathf.Clamp(pitch - d.y, aimT > 0f ? aimMinPitch : minPitch, maxPitch);
         }
         Quaternion freeRot = FreePose();
 
@@ -144,7 +144,7 @@ public class ThirdPersonCamera : MonoBehaviour
     }
 
     // Blends the current pose toward the shoulder camera while the player aims.
-    // Free: looks where the mouse looks. Locked on: keeps orbiting the boss and frames its core in the upper middle.
+    // The mouse aims freely, in the boss fight too; the lock-on framing returns when the player stops aiming.
     void AimPose(EclipseBoss boss, bool finished)
     {
         float udt = Time.unscaledDeltaTime;
@@ -156,9 +156,15 @@ public class ThirdPersonCamera : MonoBehaviour
         AimWeight = Mathf.SmoothStep(0f, 1f, aimT);
         if (AimWeight <= 0f) return;
 
-        bool onBoss = LockWeight > 0.5f && boss != null;
-        float armYaw = onBoss ? lockYaw : yaw;
-        Quaternion rot = Quaternion.Euler(onBoss ? 8f : pitch, armYaw, 0f);
+        // Free aim, also in the boss fight: the view starts where the camera was looking and the mouse takes over.
+        if (starting)
+        {
+            yaw = transform.eulerAngles.y;
+            float x = transform.eulerAngles.x;
+            pitch = Mathf.Clamp(x > 180f ? x - 360f : x, aimMinPitch, maxPitch);
+        }
+        float armYaw = yaw;
+        Quaternion rot = Quaternion.Euler(pitch, yaw, 0f);
         Vector3 origin = target.position + Vector3.up * aimUp;
         Vector3 desired = origin + Quaternion.Euler(0f, armYaw, 0f) * Vector3.right * (aimRight * shoulder) - rot * Vector3.forward * aimBack;
         Vector3 dir = desired - origin;
@@ -174,18 +180,6 @@ public class ThirdPersonCamera : MonoBehaviour
         aimArm = starting || free < aimArm ? free : Mathf.MoveTowards(aimArm, free, 8f * udt);
         Vector3 pos = origin + dir * aimArm;
 
-        if (onBoss)
-        {
-            if (bossVisual == null || bossVisual.gameObject != boss.gameObject) bossVisual = boss.GetComponent<EclipseVisual>();
-            Vector3 core = BossAnchor(boss) + (bossVisual != null && bossVisual.Core != null ? bossVisual.Core.position - boss.transform.position : Vector3.zero);
-            Vector3 flat = core - pos; flat.y = 0f;
-            float viewYaw = flat.sqrMagnitude > 0.01f ? Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg : armYaw;
-            float up = Elevation(pos, core) - Mathf.Atan((aimBossScreenY * 2f - 1f) * Mathf.Tan(aimFov * 0.5f * Mathf.Deg2Rad)) * Mathf.Rad2Deg;
-            // Never tilt up so far that the player drops out of the bottom of the frame.
-            float tanHalf = Mathf.Tan(aimFov * 0.5f * Mathf.Deg2Rad);
-            up = Mathf.Min(up, Elevation(pos, target.position + Vector3.up * 0.9f) - Mathf.Atan((lockCfg.minPlayerScreenY * 2f - 1f) * tanHalf) * Mathf.Rad2Deg);
-            rot = Quaternion.AngleAxis(nudge.x, Vector3.up) * Quaternion.Euler(-up, viewYaw, 0f) * Quaternion.AngleAxis(-nudge.y, Vector3.right);
-        }
         transform.position = Vector3.Lerp(transform.position, pos, AimWeight);
         transform.rotation = Quaternion.Slerp(transform.rotation, rot, AimWeight);
         if (cam != null) cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, aimFov, AimWeight);

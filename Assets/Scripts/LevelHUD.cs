@@ -69,6 +69,17 @@ public class LevelHUD : MonoBehaviour
     }
     EclipseVisual bossVisual;
 
+    // Placeholder weapon readout (the full HUD comes in stage D).
+    void DrawWeapon()
+    {
+        var w = combat != null ? combat.Weapons : null;
+        if (w == null || WorldState.CurrentOrDream != World.Nightmare) return;
+        var d = w.Current;
+        string ammo = d.kind == WeaponKind.Chain ? (w.Overheated ? "OVERHEATED" : "heat " + Mathf.RoundToInt(w.Heat01 * 100f) + "%")
+            : w.Reloading ? "RELOADING " + Mathf.RoundToInt(w.Reload01 * 100f) + "%  (" + LucidInput.Label(LucidInput.Reload) + " in the sweet spot)" : w.Mag(w.Index) + " / " + w.Reserve(w.Index);
+        GUI.Label(new Rect(Screen.width - 420f, Screen.height - 96f, 400f, 28f), (w.Index + 1) + "  " + d.name.ToUpper() + "   " + ammo, big);
+    }
+
     // Crosshair: a thin circle with a dot at the screen centre. Pale gold in Dream, ember red in Nightmare.
     // It tightens while aiming, opens with recoil, and a second ring flashes out on a hit.
     Texture2D crossRing, crossDot;
@@ -181,8 +192,9 @@ public class LevelHUD : MonoBehaviour
                 GUI.DrawTexture(new Rect(x + 2, 57, (width - 4) * Mathf.Clamp01(boss.health / boss.maxHealth), 10), Texture2D.whiteTexture);
                 // Phase notches at two thirds and one third.
                 GUI.color = Color.white;
-                GUI.DrawTexture(new Rect(x + 2 + (width - 4) * (2f / 3f), 53, 2, 18), Texture2D.whiteTexture);
-                GUI.DrawTexture(new Rect(x + 2 + (width - 4) / 3f, 53, 2, 18), Texture2D.whiteTexture);
+                var sheet = BalanceSheet.Load();
+                GUI.DrawTexture(new Rect(x + 2 + (width - 4) * sheet.phase2At, 53, 2, 18), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(x + 2 + (width - 4) * sheet.phase3At, 53, 2, 18), Texture2D.whiteTexture);
                 GUI.color = saved;
                 string state = boss.BindingReady ? "BIND IN DREAM" : boss.Stunned ? "WAKE WINDOW" : boss.Sealed ? "SEALED" : "EXPOSED";
                 GUI.Label(new Rect(x, 25, width, 28), $"THE SLEEPER   /   PHASE {boss.Phase}   /   {state}", big);
@@ -198,6 +210,7 @@ public class LevelHUD : MonoBehaviour
         }
         GUI.Label(new Rect(20, 16, 500, 32), world, big);
         DrawHealthBar();
+        DrawWeapon();
         if (combat != null) GUI.Label(new Rect(20, 70, 700, 24), "Power " + Mathf.RoundToInt(combat.Power) + " / " + Mathf.RoundToInt(combat.maxPower), small);
         if (combat != null && combat.IsChargingBurst)
             GUI.Label(new Rect(20, 100, 500, 24), $"BURST CHARGE  {combat.BurstCharge01:P0}", small);

@@ -1,0 +1,172 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed5cf6738e6bd4dd3bd1c15d5dd3a1af, type: 3}
+  m_Name: BalanceSheet
+  m_EditorClassIdentifier: 
+  hitImmunity: 0.8
+  maxPower: 100
+  weaponSwapTime: 0.2
+  dreadMaxMultiplier: 1.5
+  dreadGateMultiplier: 1.25
+  dreadDamageToFill: 320
+  dreadKeptOnHit: 0.5
+  weapons:
+  - name: Thorn Revolver
+    kind: 0
+    damage: 14
+    shotsPerSecond: 3
+    pellets: 1
+    magazine: 6
+    startReserve: 12
+    reloadTime: 1.7
+    range: 45
+    spreadDegrees: 0.4
+    falloffDistance: 0
+    falloffFloor: 0.25
+    weakPointMultiplier: 1.6
+    activeReloadTime: 0.9
+    sweetSpotStart: 0.42
+    sweetSpotWidth: 0.14
+    activeBuff: 1.2
+    activeBuffSeconds: 4
+    heatSeconds: 3.5
+    lockoutSeconds: 2.5
+    lockConeDegrees: 12
+    color: {r: 1, g: 0.45, b: 0.35, a: 1}
+    shake: 0.07
+    fovPunch: 1.2
+    crosshairSpread: 0.8
+  - name: Gloam Scatter
+    kind: 1
+    damage: 5
+    shotsPerSecond: 1
+    pellets: 8
+    magazine: 2
+    startReserve: 6
+    reloadTime: 2.4
+    range: 14
+    spreadDegrees: 7
+    falloffDistance: 9
+    falloffFloor: 0.25
+    weakPointMultiplier: 1
+    activeReloadTime: 1.4
+    sweetSpotStart: 0.42
+    sweetSpotWidth: 0.14
+    activeBuff: 1.2
+    activeBuffSeconds: 4
+    heatSeconds: 3.5
+    lockoutSeconds: 2.5
+    lockConeDegrees: 12
+    color: {r: 1, g: 0.6, b: 0.15, a: 1}
+    shake: 0.16
+    fovPunch: 2
+    crosshairSpread: 1.8
+  - name: Wraith Chain
+    kind: 2
+    damage: 22
+    shotsPerSecond: 3
+    pellets: 1
+    magazine: 0
+    startReserve: 0
+    reloadTime: 1.7
+    range: 20
+    spreadDegrees: 0.5
+    falloffDistance: 0
+    falloffFloor: 0.25
+    weakPointMultiplier: 1
+    activeReloadTime: 0.9
+    sweetSpotStart: 0.42
+    sweetSpotWidth: 0.14
+    activeBuff: 1.2
+    activeBuffSeconds: 4
+    heatSeconds: 3.5
+    lockoutSeconds: 2.5
+    lockConeDegrees: 12
+    color: {r: 0.7, g: 0.35, b: 1, a: 1}
+    shake: 0.012
+    fovPunch: 0
+    crosshairSpread: 1.2
+  aimAssistDegrees: 3.5
+  aimAssistGamepadDegrees: 8
+  bossHealth: 1500
+  phase2At: 0.65
+  phase3At: 0.3
+  dreamDamageScale: 0.1
+  windowCap: 0.15
+  overCapScale: 0.4
+  wakeWindowAt: 0.1
+  wakeWindowSeconds: 4
+  lucidShotCharge: 2
+  wakeWindowGrace: 10
+  weakPointOrbitDegrees: 22
+  weakPointSize: 1.15
+  tagSeconds: 8
+  maxTags: 3
+  retagLockout: 4
+  cashInMultiplier: 1.6
+  cashInPower: 10
+  wardMax: 100
+  wardRegenPerSecond: 10
+  wardRegenDelay: 1
+  wardBreakSeconds: 2.5
+  wardMoveScale: 0.8
+  wardDrainSmall: 8
+  wardDrainBig: 20
+  seedHeal: 4
+  seedWard: 6
+  seedPower: 5
+  perfectCatchWindow: 0.15
+  perfectCatchMultiplier: 2
+  seedAmmo: {x: 1.7, y: 0.5}
+  pinkSeedShare: 0.25
+  seedStreamCount: 6
+  thornShotPower: 3
+  bowDrawTime: 0.6
+  bowInterval: 1.4
+  bowRange: 45
+  lucidPulse:
+    name: Lucid Pulse
+    cooldown: 10
+    powerCost: 0
+    radius: 9
+    amount: 0
+  bloom:
+    name: Bloom
+    cooldown: 14
+    powerCost: 0
+    radius: 7
+    amount: 2
+  bloomSeconds: 6
+  burst:
+    name: Burst
+    cooldown: 25
+    powerCost: 40
+    radius: 12
+    amount: 1
+  shadowstep:
+    name: Shadowstep
+    cooldown: 6
+    powerCost: 20
+    radius: 24
+    amount: 1.5
+  overdrive:
+    name: Overdrive
+    cooldown: 45
+    powerCost: 0
+    radius: 0
+    amount: 1.35
+  overdriveSeconds: 5
+  overdriveFireRate: 1.4
+  mothHealth: 20
+  crawlerHealth: 60
+  watcherHealth: 90
+  budHealth: 14

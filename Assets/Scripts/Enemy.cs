@@ -21,6 +21,12 @@ public abstract class Enemy : MonoBehaviour
     {
         var pc = Object.FindFirstObjectByType<PlayerController>();
         if (pc != null) player = pc.transform;
+        // Health of the zone enemies comes from the BalanceSheet.
+        var b = BalanceSheet.Load();
+        if (this is GlimmerMoth) health = b.mothHealth;
+        else if (this is BrambleCrawler) health = b.crawlerHealth;
+        else if (this is GloamWatcher) health = b.watcherHealth;
+        else if (this is CorruptBud) health = b.budHealth;
     }
 
     public virtual void TakeDamage(float damage, Vector3 hitPoint)

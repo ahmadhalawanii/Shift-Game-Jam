@@ -23,7 +23,10 @@ public class EclipseBoss : Enemy
     // Fight state read by the HUD and visuals.
     public bool Stunned => Time.time < stunUntil;
     public bool Teleporting => director != null && director.Teleporting;
-    public float Dread { get; private set; }
+    public float Dread => playerCombat != null ? playerCombat.Dread : 0f;
+    public BossWeakPoints WeakPoints { get; private set; }
+    BalanceSheet sheet;
+    float windowDamage;
     public bool SwapWarning => swapWarned;
     public World SwapTarget => swapTarget;
     public float Phase3Since { get; private set; }
@@ -31,9 +34,7 @@ public class EclipseBoss : Enemy
     {
         get
         {
-            if (CurrentWorld != World.Nightmare) return 1f;
-            float since = Mathf.Max(nightmareSince, pc != null ? pc.LastHitTime : 0f);
-            return 1f + (Data.maxDamageMultiplier - 1f) * Mathf.Clamp01((Time.time - since) / Mathf.Max(0.1f, Data.multiplierRampSeconds));
+            return playerCombat != null ? playerCombat.DreadMultiplier : 1f;
         }
     }
 
@@ -67,7 +68,9 @@ public class EclipseBoss : Enemy
     {
         base.Start();
         Data = BossAttackData.Load();
-        maxHealth = Data.bossHealth;
+        sheet = BalanceSheet.Load();
+        maxHealth = sheet.bossHealth;
+        WeakPoints = gameObject.AddComponent<BossWeakPoints>();
         health = maxHealth;
         radius = 3.4f * BaseScale;
         transform.localScale = Vector3.one * BaseScale;
@@ -189,7 +192,7 @@ public class EclipseBoss : Enemy
 
     void TryPhaseChange()
     {
-        if (!((Phase == 1 && health <= maxHealth * (2f / 3f)) || (Phase == 2 && health <= maxHealth / 3f))) return;
+        if (!((Phase == 1 && health <= maxHealth * sheet.phase2At) || (Phase == 2 && health <= maxHealth * sheet.phase3At))) return;
         EnterPhase(Phase + 1, 2.6f);
     }
 
@@ -235,16 +238,6 @@ public class EclipseBoss : Enemy
         }
 
         if (beat == Beat.Dormant || beat == Beat.Intro) return;
-        if (ws.Current == World.Nightmare) Dread += dt / Mathf.Max(1f, Data.dreadFillSeconds);
-        else Dread = Mathf.Max(0f, Dread - dt / Mathf.Max(0.5f, Data.dreadDrainSeconds));
-        if (Dread > 0.55f) ThirdPersonCamera.Shake(dt * (Dread - 0.55f) * 0.5f);
-        if (Dread >= 1f)
-        {
-            Dread = 0.6f;
-            ForceWorld(World.Dream);
-            if (pc != null) pc.Damage(Data.dreadDamage / 100f);
-            Tell("DREAD OVERWHELMS YOU  /  BACK TO THE DREAM", 2f);
-        }
     }
 
     void ForceWorld(World w)
@@ -261,6 +254,7 @@ public class EclipseBoss : Enemy
     void OnWorldChanged(World w)
     {
         if (w == World.Nightmare) nightmareSince = Time.time;
+        windowDamage = 0f;   // each Nightmare window has its own damage cap
         if (swapWarned && !forcingSwap && w == swapTarget && playerCombat != null && player != null)
         {
             playerCombat.AddPower(Data.shiftRewardPower);
@@ -358,12 +352,13 @@ public class EclipseBoss : Enemy
     public override void TakeDamage(float damage, Vector3 hitPoint)
     {
         if (!Engaged || EclipseEncounter.Finished) return;
-        if (Sealed)
+        if (BindingReady || beat == Beat.PhaseTell || vanish < 0.5f)
         {
             Fx.Burst(hitPoint, new Color(0.65f, 0.85f, 1f), 5);
             return;
         }
-        ApplyDamage(damage * Data.playerDamageScale * DamageMultiplier, hitPoint);
+        // Armoured in Dream: only a tenth gets through. The Dread multiplier is applied by the weapons.
+        ApplyDamage(damage * (!Stunned && CurrentWorld == World.Dream ? sheet.dreamDamageScale : 1f), hitPoint);
     }
 
     // Lucid Pulse goes through Dream armour, but never through a transformation or the finale seal.
@@ -376,7 +371,12 @@ public class EclipseBoss : Enemy
     void ApplyDamage(float damage, Vector3 hitPoint)
     {
         // Each threshold is a gate, so a single heavy shot cannot skip a transformation.
-        float floor = Phase == 1 ? maxHealth * (2f / 3f) : Phase == 2 ? maxHealth / 3f : 1f;
+        float floor = Phase == 1 ? maxHealth * sheet.phase2At : Phase == 2 ? maxHealth * sheet.phase3At : 1f;
+        // One Nightmare window removes at most windowCap of the boss's health at full value; the rest is reduced.
+        float room = Mathf.Max(0f, maxHealth * sheet.windowCap - windowDamage);
+        float full = Mathf.Min(damage, room);
+        damage = full + (damage - full) * sheet.overCapScale;
+        windowDamage += damage;
         float previous = health;
         health = Mathf.Max(floor, health - damage);
         if (health < previous) Fx.Burst(hitPoint, Stunned ? new Color(0.6f, 1f, 1f) : new Color(1f, 0.6f, 0.2f), Stunned ? 12 : 6);

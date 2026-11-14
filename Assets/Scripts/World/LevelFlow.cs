@@ -87,8 +87,16 @@ public class LevelFlow : MonoBehaviour
         Current = zone;
         saved = zone;
         if (player != null) player.checkpoint = zones[zone].spawn;
+        RefillAmmo();
         if (EclipseEncounter.Instance != null) EclipseEncounter.Instance.Tell(zones[zone].name.ToUpper(), 3.5f);
         if (player != null) Fx.Burst(player.transform.position + Vector3.up, new Color(1f, 0.85f, 0.54f), 30);
+    }
+
+    // Ammo only comes from Heart Seeds in the boss fight; on the way there, every checkpoint restocks it.
+    void RefillAmmo()
+    {
+        var w = player != null ? player.GetComponent<PlayerWeapons>() : null;
+        if (w != null) w.Refill();
     }
 
     public void MoveTo(int zone)
@@ -115,6 +123,7 @@ public class LevelFlow : MonoBehaviour
         safePos = z.spawn;
         safeYaw = z.yaw;
         if (avatar != null) avatar.health = 1f;
+        RefillAmmo();
         if (EclipseEncounter.Instance != null) EclipseEncounter.Instance.Tell("You fade, and wake at the last light.", 3.5f);
     }
 

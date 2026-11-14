@@ -62,6 +62,49 @@ public sealed class LucidAudio : MonoBehaviour
         if (clip != null) instance.source.PlayOneShot(clip, 0.36f);
     }
 
+    // Weapon and UI sounds: a noise transient over a sine sweep with a decaying tail. Cached by id.
+    public static void Sfx(string id)
+    {
+        if (instance == null) return;
+        if (!instance.hooks.TryGetValue(id, out var clip))
+        {
+            float dur = 0.1f, f0 = 800f, f1 = 600f, noise = 0.2f, vol = 0.4f;
+            switch (id)
+            {
+                case "revolver": dur = 0.26f; f0 = 210f; f1 = 55f; noise = 0.8f; break;
+                case "scatter": dur = 0.42f; f0 = 130f; f1 = 38f; noise = 1.2f; break;
+                case "chain": dur = 0.13f; f0 = 310f; f1 = 270f; noise = 0.12f; break;
+                case "bow": dur = 0.3f; f0 = 900f; f1 = 1800f; noise = 0.1f; break;
+                case "reload": dur = 0.09f; f0 = 950f; f1 = 700f; noise = 0.3f; break;
+                case "reload_perfect": dur = 0.3f; f0 = 880f; f1 = 1760f; noise = 0.05f; break;
+                case "empty": dur = 0.06f; f0 = 1300f; f1 = 900f; noise = 0.4f; break;
+                case "hit": dur = 0.05f; f0 = 2100f; f1 = 1700f; noise = 0.1f; break;
+                case "swap": dur = 0.08f; f0 = 500f; f1 = 760f; noise = 0.15f; break;
+                case "seed": dur = 0.22f; f0 = 1046f; f1 = 1568f; noise = 0f; break;
+                case "perfect": dur = 0.45f; f0 = 1318f; f1 = 2637f; noise = 0.05f; break;
+                case "ward_break": dur = 0.5f; f0 = 600f; f1 = 80f; noise = 0.6f; break;
+                case "heartbeat": dur = 0.3f; f0 = 70f; f1 = 45f; noise = 0f; break;
+            }
+            int count = (int)(Rate * dur);
+            var data = new float[count];
+            var random = new System.Random(id.GetHashCode());
+            float phase = 0f, lp = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (float)i / count;
+                phase += 2f * Mathf.PI * Mathf.Lerp(f0, f1, Mathf.Sqrt(t)) / Rate;
+                lp += ((float)random.NextDouble() * 2f - 1f - lp) * Mathf.Lerp(0.9f, 0.15f, t);
+                float body = Mathf.Sin(phase) * 0.5f + Mathf.Sin(phase * 0.5f) * 0.25f;
+                data[i] = Mathf.Clamp((body * (1f - t) * (1f - t) + lp * noise * Mathf.Exp(-t * 9f)) * Mathf.Min(1f, t * 80f), -1f, 1f);
+            }
+            clip = AudioClip.Create(id, count, 1, Rate, false);
+            clip.SetData(data, 0);
+            instance.owned.Add(clip);
+            instance.hooks[id] = clip;
+        }
+        instance.source.PlayOneShot(clip, id == "chain" ? 0.2f : 0.45f);
+    }
+
     static AudioClip Tone(string name, float duration, float first, float last)
     {
         int count = (int)(Rate * duration);

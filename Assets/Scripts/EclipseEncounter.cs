@@ -53,6 +53,8 @@ public class EclipseEncounter : MonoBehaviour
     public void Tell(string message, float seconds = 2f) { Notice = message; noticeUntil = Time.time + seconds; }
     public void BeginBossFight()
     {
+        var weapons = FindFirstObjectByType<PlayerWeapons>();
+        if (weapons != null) weapons.Refill();
         if (BossFightStarted) return;
         BossFightStarted = true;
         EnemyBullet.Clear(Vector3.zero, float.PositiveInfinity);

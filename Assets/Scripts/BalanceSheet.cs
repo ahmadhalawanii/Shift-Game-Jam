@@ -119,6 +119,13 @@ public class BalanceSheet : ScriptableObject
     [Range(0f, 1f)] public float pinkSeedShare = 0.25f;     // share of plain Dream orbs that become Heart Seeds
     public int seedStreamCount = 6;                 // extra seeds sent at the player each Dream window
     public float thornShotPower = 3f;
+    public float seedWindowHealCap = 25f;
+    public float seedStreamInterval = 0.8f;
+    public float seedSpeed = 7f;
+    public float perfectCatchShotDamage = 8f;
+    public float dreamMistSeconds = 1f;
+    public float bloomPullSpeed = 7f;
+    public float bloomHealRadius = 3f;
 
     [Header("Dream: Lumen Bow")]
     public float bowDrawTime = 0.6f;

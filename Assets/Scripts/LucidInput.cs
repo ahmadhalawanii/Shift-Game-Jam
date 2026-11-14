@@ -21,6 +21,8 @@ public static class LucidInput
         Weapon1, Weapon2, Weapon3, NextWeapon, PrevWeapon, WeaponWheel, SwapShoulder, Recenter, Pause;
 
     static InputActionMap map;
+    public static InputActionMap Actions => map;
+    public static int BindingVersion { get; private set; }
     static readonly Dictionary<InputAction, float> pressedAt = new Dictionary<InputAction, float>();
     static bool aimLatch;
 
@@ -30,6 +32,8 @@ public static class LucidInput
         if (map != null) map.Dispose();
         pressedAt.Clear();
         aimLatch = false;
+        invertY = PlayerPrefs.GetInt("Lucid.InvertY") != 0;
+        aimToggle = PlayerPrefs.GetInt("Lucid.AimToggle") != 0;
         UsingGamepad = false;
         map = new InputActionMap("Lucid");
 
@@ -64,8 +68,11 @@ public static class LucidInput
         Pause = Button("Pause", "<Keyboard>/escape", "<Gamepad>/start");
 
         map.actionTriggered += OnTriggered;
+        string overrides = PlayerPrefs.GetString("Lucid.BindingOverrides", "");
+        if (!string.IsNullOrEmpty(overrides)) map.LoadBindingOverridesFromJson(overrides);
         map.Enable();
     }
+    public static void SaveBindings() { BindingVersion++; PlayerPrefs.SetString("Lucid.BindingOverrides", map.SaveBindingOverridesAsJson()); PlayerPrefs.Save(); }
 
     static InputAction Button(string name, string keyboard, string gamepad)
     {

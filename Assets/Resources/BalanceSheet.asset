@@ -130,6 +130,13 @@ MonoBehaviour:
   pinkSeedShare: 0.25
   seedStreamCount: 6
   thornShotPower: 3
+  seedWindowHealCap: 25
+  seedStreamInterval: 0.8
+  seedSpeed: 7
+  perfectCatchShotDamage: 8
+  dreamMistSeconds: 1
+  bloomPullSpeed: 7
+  bloomHealRadius: 3
   bowDrawTime: 0.6
   bowInterval: 1.4
   bowRange: 45

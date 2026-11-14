@@ -6,6 +6,7 @@ public sealed class LucidAudio : MonoBehaviour
     public enum Cue { Thread, Charge, Burst, Capture, Shift, Warning, Fusion, Victory, DashDream, DashNightmare }
     static LucidAudio instance;
     AudioSource source;
+    AudioSource worldSource;
     readonly AudioClip[] clips = new AudioClip[10];
     readonly AudioClip[] resonance = new AudioClip[5];
     readonly System.Collections.Generic.Dictionary<string, AudioClip> hooks = new System.Collections.Generic.Dictionary<string, AudioClip>();
@@ -18,6 +19,14 @@ public sealed class LucidAudio : MonoBehaviour
         source = gameObject.AddComponent<AudioSource>();
         source.playOnAwake = false;
         source.spatialBlend = 0f;
+        worldSource = gameObject.AddComponent<AudioSource>();
+        worldSource.playOnAwake = false; worldSource.spatialBlend = 0f;
+        var mixer = Resources.Load<UnityEngine.Audio.AudioMixer>("LucidCombat");
+        if (mixer != null)
+        {
+            var groups = mixer.FindMatchingGroups("Player"); if (groups.Length > 0) source.outputAudioMixerGroup = groups[0];
+            var world = mixer.FindMatchingGroups("World"); if (world.Length > 0) worldSource.outputAudioMixerGroup = world[0];
+        }
     }
 
     public static void Play(Cue cue)
@@ -59,7 +68,7 @@ public sealed class LucidAudio : MonoBehaviour
             }
             instance.hooks[id] = clip;
         }
-        if (clip != null) instance.source.PlayOneShot(clip, 0.36f);
+        if (clip != null) instance.worldSource.PlayOneShot(clip, 0.36f);
     }
 
     // Weapon and UI sounds: a noise transient over a sine sweep with a decaying tail. Cached by id.

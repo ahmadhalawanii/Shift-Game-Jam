@@ -12,31 +12,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb8e8ae449ad04c6fbc4bd899d12afd6, type: 3}
   m_Name: CameraLockSettings
   m_EditorClassIdentifier: 
-  blendIn: 0.6
-  blendOut: 0.8
-  distance: 4.5
+  blendIn: 0.38
+  blendOut: 0.42
+  distance: 4.8
   height: 1.6
-  pitch: 17
-  shoulder: 0.45
-  bossWeight: 0.65
-  yawSmooth: 0.08
-  nearGap: 8
-  farGap: 26
-  farDistance: 7
-  minFov: 60
-  maxFov: 75
-  bigAttackBonus: 0.35
-  frameMargin: 6
+  pitch: 12
+  shoulder: 0.55
+  bossWeight: 0.45
+  yawSmooth: 0.18
+  framingSmooth: 0.16
+  maxTurnSpeed: 220
+  nearGap: 7
+  farGap: 19
+  closeDistance: 6.1
+  minFov: 65
+  maxFov: 70
+  playerScreenY: 0.32
+  bossScreenY: 0.66
+  bossMaxScreenY: 0.8
+  minPlayerScreenY: 0.22
   adaptSmooth: 0.35
-  nudgeMax: 10
-  nudgeSensitivity: 0.05
-  nudgeReturn: 4
+  nudgeMax: 16
+  nudgeSensitivity: 0.65
+  nudgeReturn: 2.8
   probeRadius: 0.3
   bossClearance: 0.8
   teleportHold: 0.15
   teleportEase: 0.4
   phasePullBack: 1.5
-  phasePullDistance: 6
-  phasePullFov: 8
+  phasePullDistance: 0.65
+  phasePullFov: 1.5
   shakeScale: 0.6
   shakeVertical: 0.3

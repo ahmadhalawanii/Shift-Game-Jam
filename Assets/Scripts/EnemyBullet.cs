@@ -20,6 +20,29 @@ public class EnemyBullet : MonoBehaviour
     static readonly int ThornId = Shader.PropertyToID("_Thorn");
     public static int BossCount { get; private set; }
     public bool IsDreamSeed { get; private set; }
+    public bool IsHeartSeed { get; private set; }
+    public EnemyBullet HeartSeed() { IsHeartSeed = true; Look(DreamCombat.Pink, 0f, 1.1f); return this; }
+    public static void ClearDanger(Vector3 center, float radius)
+    {
+        for (int i = active.Count - 1; i >= 0; i--)
+            if (!active[i].IsHeartSeed && (active[i].transform.position - center).sqrMagnitude <= radius * radius) active[i].Retire();
+    }
+    public static void AttractPink(Vector3 center, float radius, float step)
+    {
+        for (int i = active.Count - 1; i >= 0; i--)
+        {
+            var b = active[i];
+            if (!b.IsHeartSeed || (b.transform.position - center).sqrMagnitude > radius * radius) continue;
+            b.transform.position = Vector3.MoveTowards(b.transform.position, center, step);
+            if ((b.transform.position - center).sqrMagnitude < 1f && combat != null && combat.Dream != null)
+            { combat.Dream.Catch(center, true); b.End(BulletEnd.Absorbed); }
+        }
+    }
+    public static bool PinkNearby(Vector3 position, float radius)
+    {
+        for (int i = 0; i < active.Count; i++) if (active[i].IsHeartSeed && (active[i].transform.position - position).sqrMagnitude < radius * radius) return true;
+        return false;
+    }
     public float hitRadius = 0.8f;
     public int Generation { get; private set; }
     public int Tag { get; private set; }
@@ -173,6 +196,7 @@ public class EnemyBullet : MonoBehaviour
     {
         dir=direction.normalized; speed=spd; damage=dmg; life=8f;
         IsDreamSeed = world == World.Dream;
+        IsHeartSeed = false;
         color=world==World.Dream?new Color(0.15f,0.75f,1f):new Color(1f,0.35f,0.06f);
         if(core!=null)
         {
@@ -209,15 +233,16 @@ public class EnemyBullet : MonoBehaviour
         Vector3 to2=transform.position, c=player.transform.position+Vector3.up;
         float d2=CombatGeometry.SegmentDistanceSquared(from.x,from.y,from.z,to2.x,to2.y,to2.z,c.x,c.y,c.z);
         bool dream=WorldState.Instance!=null && WorldState.Instance.Current==World.Dream;
-        if(dream && IsDreamSeed && combat!=null && combat.ShieldUp && d2<combat.ShieldRadius*combat.ShieldRadius)
+        if(dream && IsDreamSeed && combat!=null && combat.Dream != null && combat.Dream.WardUp && d2<combat.ShieldRadius*combat.ShieldRadius)
         {
-            combat.OnAbsorb(transform.position);
-            if(bonusPower>0f || heal>0f) combat.OnGoldAbsorb(transform.position,bonusPower,heal);
+            if (IsHeartSeed) combat.Dream.Catch(transform.position);
+            else combat.Dream.Block(Mathf.Lerp(BalanceSheet.Load().wardDrainSmall, BalanceSheet.Load().wardDrainBig, Mathf.InverseLerp(.06f, .18f, damage)));
             Fx.Burst(transform.position,color,3); End(BulletEnd.Absorbed);
         }
         else if(d2<hitRadius*hitRadius)
         {
-            player.Damage(damage); Retire();
+            if (!IsHeartSeed) { float hit = player.LastHitTime; player.Damage(damage); if (player.LastHitTime != hit) LucidCombatHUD.DamageSource = from; }
+            Retire();
         }
     }
 }

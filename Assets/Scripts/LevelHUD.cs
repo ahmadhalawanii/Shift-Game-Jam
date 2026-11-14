@@ -168,6 +168,7 @@ public class LevelHUD : MonoBehaviour
 
     void OnGUI()
     {
+        if (DreamcatcherPresentation.CoversHud) return;
         if (big == null)
         {
             big = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold };
@@ -176,6 +177,7 @@ public class LevelHUD : MonoBehaviour
         }
         DrawVignette();
         DrawCrosshair();
+        if (combat != null && combat.GetComponent<LucidCombatHUD>() != null) return;
         string world = WorldState.Instance != null ? WorldState.Instance.Current.ToString().ToUpper() : "";
         var encounter = EclipseEncounter.Instance;
         if (encounter != null)

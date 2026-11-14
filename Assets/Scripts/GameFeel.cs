@@ -74,7 +74,7 @@ public class GameFeel : MonoBehaviour
         Time.timeScale = 0.04f;
         yield return new WaitForSecondsRealtime(seconds);
         stops--;
-        if (stops <= 0) Time.timeScale = 1f;
+        if (stops <= 0) Time.timeScale = DreamcatcherPresentation.CoversHud ? 0f : 1f;
     }
 
     void OnDestroy() { Time.timeScale = 1f; }

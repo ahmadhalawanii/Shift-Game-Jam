@@ -148,9 +148,11 @@ public sealed class BossHazards : MonoBehaviour
             if (Time.time >= z.nextTick)
             {
                 z.nextTick = Time.time + 0.5f;
+                zones[i] = z;
                 HitCircle(z.center, z.radius, z.damage, false);
+                // Lethal damage ends the encounter and clears this list synchronously.
+                if (EclipseEncounter.Finished) break;
             }
-            zones[i] = z;
         }
         if (ShowHitboxes) DrawHitboxes();
     }
@@ -165,7 +167,7 @@ public sealed class BossHazards : MonoBehaviour
         var p = Player;
         if (p == null || p.Recalling || (jumpable && !Grounded(p))) return false;
         if (FlatDistanceSquared(p.transform.position, center) > radius * radius) return false;
-        return Hurt(p, damage);
+        return Hurt(p, damage, center);
     }
 
     public static bool HitSegment(Vector3 a, Vector3 b, float halfWidth, float damage)
@@ -175,7 +177,7 @@ public sealed class BossHazards : MonoBehaviour
         Vector3 c = p.transform.position;
         float d2 = CombatGeometry.SegmentDistanceSquared(a.x, 0f, a.z, b.x, 0f, b.z, c.x, 0f, c.z);
         if (d2 > halfWidth * halfWidth) return false;
-        return Hurt(p, damage);
+        return Hurt(p, damage, a);
     }
 
     public static bool HitTriangle(Vector3 a, Vector3 b, Vector3 c, float damage)
@@ -186,15 +188,23 @@ public sealed class BossHazards : MonoBehaviour
         float d1 = Cross(q, a, b), d2 = Cross(q, b, c), d3 = Cross(q, c, a);
         bool neg = d1 < 0 || d2 < 0 || d3 < 0, pos = d1 > 0 || d2 > 0 || d3 > 0;
         if (neg && pos) return false;
-        return Hurt(p, damage);
+        return Hurt(p, damage, (a + b + c) / 3f);
     }
 
     static float Cross(Vector3 p, Vector3 a, Vector3 b) => (p.x - b.x) * (a.z - b.z) - (a.x - b.x) * (p.z - b.z);
 
-    static bool Hurt(PlayerController p, float damage)
+    static float wardHitAt = -99f;
+    static bool Hurt(PlayerController p, float damage, Vector3 source)
     {
+        var combat = p.GetComponent<PlayerCombat>();
+        if (WorldState.CurrentOrDream == World.Dream && combat != null && combat.Dream != null && combat.Dream.WardUp)
+        {
+            if (Time.time >= wardHitAt) { combat.Dream.Block(BalanceSheet.Load().wardDrainBig); wardHitAt = Time.time + .5f; }
+            return false;
+        }
         float before = p.LastHitTime;
         p.Damage(damage / 100f);
+        if (p.LastHitTime != before) LucidCombatHUD.DamageSource = source;
         return p.LastHitTime != before;
     }
 

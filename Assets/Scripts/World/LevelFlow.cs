@@ -33,6 +33,7 @@ public class LevelFlow : MonoBehaviour
 
     // Survives the R reload so a retry returns to the last zone reached. Cleared when play starts.
     static int saved = -1;
+    public static void ResetCheckpoint() { saved = -1; }
 
     Vector3 safePos;
     float safeYaw;
@@ -129,7 +130,7 @@ public class LevelFlow : MonoBehaviour
 
     void Update()
     {
-        if (player == null || EclipseEncounter.Finished) return;
+        if (player == null || EclipseEncounter.Finished || DreamcatcherPresentation.CoversHud) return;
         var encounter = EclipseEncounter.Instance;
         bool fighting = encounter != null && encounter.BossFightStarted;
         var kb = Keyboard.current;

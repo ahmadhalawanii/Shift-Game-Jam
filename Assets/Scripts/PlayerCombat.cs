@@ -42,6 +42,7 @@ public class PlayerCombat : MonoBehaviour
     public void SetDread(float value) { Dread = Mathf.Clamp01(value); }
     public void KickNow() { Kick = 1f; }
     PlayerWeapons weapons;
+    public DreamCombat Dream { get; private set; }
     float dreadHitSeen;
     public bool HeavyCast { get; private set; }
     public float Kick { get; private set; }
@@ -72,6 +73,11 @@ public class PlayerCombat : MonoBehaviour
         pc = GetComponent<PlayerController>();
         weapons = GetComponent<PlayerWeapons>();
         if (weapons == null) weapons = gameObject.AddComponent<PlayerWeapons>();
+        Dream = GetComponent<DreamCombat>();
+        if (Dream == null) Dream = gameObject.AddComponent<DreamCombat>();
+        maxPower = BalanceSheet.Load().maxPower;
+        if (GetComponent<NightmareAbilities>() == null) gameObject.AddComponent<NightmareAbilities>();
+        if (GetComponent<LucidCombatHUD>() == null) gameObject.AddComponent<LucidCombatHUD>();
         avatar = GetComponentInChildren<MemoryAvatar>();
         cam = Camera.main;
         shield = CombatAssets.Spawn("Shield", transform.position, Quaternion.identity);
@@ -99,13 +105,13 @@ public class PlayerCombat : MonoBehaviour
     // Tether seeds and gold seeds add Power and heal on top of a normal absorb.
     public void OnGoldAbsorb(Vector3 where, float bonusPower, float heal)
     {
-        AddPower(bonusPower);
-        if (avatar != null) avatar.health = Mathf.Min(1f, avatar.health + heal);
-        Fx.Burst(where, new Color(1f, 0.85f, 0.3f), 22);
+        // Legacy gold/tether rewards are deliberately non-healing. Only explicit Heart Seeds heal.
     }
 
     void Update()
     {
+        if (EclipseEncounter.Instance != null && EclipseEncounter.Instance.Boss != null && EclipseEncounter.Instance.Boss.WakeActive)
+        { weapons.Idle(); HideShield(); Aiming = true; return; }
         if (EclipseEncounter.Finished)
         {
             CancelBurst();
@@ -127,28 +133,13 @@ public class PlayerCombat : MonoBehaviour
         Aiming = w == World.Nightmare && (aimHeld || (ThirdPersonCamera.LockedOn && weapons.Firing));
         if (pc != null && pc.LastHitTime > dreadHitSeen) { dreadHitSeen = pc.LastHitTime; Dread *= BalanceSheet.Load().dreadKeptOnHit; }
         if (w == World.Nightmare) weapons.Tick(); else weapons.Idle();
-        if (w == World.Nightmare && IsChargingBurst) CancelBurst();
-        if (w == World.Dream && aimHeld && !IsChargingBurst && Time.time >= nextBurst)
-        {
-            chargeAge = 0f;
-            IsChargingBurst = true;
-            LucidAudio.Play(LucidAudio.Cue.Charge);
-            chargingVisual = BurstVisual.Begin(transform, 4f, 0f);
-        }
-
-        if (IsChargingBurst)
-        {
-            chargeAge += Time.deltaTime;
-            if (chargingVisual != null) chargingVisual.SetCharge(BurstCharge01);
-            if (!aimHeld) ReleaseBurst();
-        }
-
-        ShieldUp = w == World.Dream && IsChargingBurst && aimHeld;
+        Dream.Tick(w);
+        ShieldUp = Dream.WardUp;
+        if (w == World.Dream) Aiming = Dream.Drawing;
         if (pc != null && pc.LastHitTime > resonanceSince && resonanceAbsorbs > 0) ResetResonance();
         Kick = Mathf.MoveTowards(Kick, 0f, 9f * Time.deltaTime);
-        bool striking = w == World.Dream && LucidInput.Fire.IsPressed() && !IsChargingBurst;
+        bool striking = Dream.Drawing;
         if (striking || IsChargingBurst || Aiming) FaceAim();
-        if (striking && Time.time >= nextShot) Fire(false);
 
         if (shield != null)
         {
@@ -205,7 +196,16 @@ public class PlayerCombat : MonoBehaviour
         Vector3 right = Vector3.Cross(Vector3.up, aim);
         Vector3 origin = transform.position + Vector3.up * 1.2f + aim * 0.7f + right * (heavy ? 0.48f : -0.48f);
         Enemy target = null;   // no aim assist: shots go where the crosshair points
+        // Keep unassisted casts on the same horizontal aim line as the shoulder
+        // camera. Converge from the casting hand rather than shooting in parallel.
         Vector3 dir = aim;
+        if (cam != null)
+        {
+            Vector3 convergence = cam.transform.position + aim * 18f;
+            convergence.y = origin.y;
+            Vector3 toAimLine = convergence - origin;
+            if (Vector3.Dot(toAimLine, aim) > 1f) dir = toAimLine.normalized;
+        }
         if (target != null)
         {
             Vector3 to = (target.transform.position - origin).normalized;
@@ -227,6 +227,12 @@ public class PlayerCombat : MonoBehaviour
     }
 
     public void AddPower(float amount) { Power = Mathf.Clamp(Power + amount, 0f, maxPower); }
+    public bool SpendPower(float amount)
+    {
+        if (Power < amount) return false;
+        Power -= amount;
+        return true;
+    }
 
     public bool TrySpendPower(float fraction)
     {
@@ -276,17 +282,7 @@ public class PlayerCombat : MonoBehaviour
 
     public void OnAbsorb(Vector3 where)
     {
-        Power = Mathf.Min(maxPower, Power + 1f);
-        int before = ResonanceLevel;
-        resonanceAbsorbs++;
-        if (ResonanceLevel != before) LucidAudio.PlayResonance(ResonanceLevel);
-        if (avatar != null)
-        {
-            avatar.health = Mathf.Min(1f, avatar.health + 0.012f);
-            avatar.Sharpen();
-        }
-        LucidAudio.Play(LucidAudio.Cue.Capture);
-        Fx.Burst(where, new Color(0.15f, 1f, 0.85f), 10);
-        ThirdPersonCamera.Shake(0.02f);
+        // Compatibility hook for old hazards: non-pink absorption never heals.
+        if (Dream != null) Dream.Block(BalanceSheet.Load().wardDrainSmall);
     }
 }

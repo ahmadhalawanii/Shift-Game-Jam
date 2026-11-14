@@ -38,29 +38,33 @@ public class EclipseEncounter : MonoBehaviour
             player.checkpoint = player.transform.position;
             controller.enabled = true;
         }
-        Tell("Follow the path to the Sleeper. Left-click to strike. Hold and release right-click to cast.", 8f);
+        Tell("Follow the path. Dream: draw Lumen Bow and catch PINK seeds with Ward. Nightmare: fire weapons.", 8f);
     }
     void Update()
     {
         if (Time.time > noticeUntil) Notice = null;
-        if (Finished && LucidInput.Reload.WasPressedThisFrame())
+        if (Finished && !DreamcatcherPresentation.OwnsScreen && LucidInput.Reload.WasPressedThisFrame())
         {
             Time.timeScale = 1f;
             retryBoss = BossFightStarted;
             SceneManager.LoadScene(SceneManager.GetActiveScene().path);
         }
     }
+    public static void PrepareCheckpointRetry()
+    {
+        retryBoss = Instance != null && Instance.BossFightStarted;
+    }
     public void Tell(string message, float seconds = 2f) { Notice = message; noticeUntil = Time.time + seconds; }
     public void BeginBossFight()
     {
+        if (BossFightStarted) return;
         var weapons = FindFirstObjectByType<PlayerWeapons>();
         if (weapons != null) weapons.Refill();
-        if (BossFightStarted) return;
         BossFightStarted = true;
         EnemyBullet.Clear(Vector3.zero, float.PositiveInfinity);
         foreach (var enemy in Enemy.All.ToArray())
             if (enemy is WispEnemy) enemy.gameObject.SetActive(false);
-        Tell("THE ECLIPSE — Round orbs: absorb. Red waves: dash. Left Shift shifts the world.", 5f);
+        Tell("THE SLEEPER / PINK heals. GOLD and CYAN drain Ward. RED: dodge.", 5f);
     }
     public void End(bool victory)
     {

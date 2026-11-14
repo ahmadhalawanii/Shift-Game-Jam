@@ -40,6 +40,18 @@ public class WorldShift : MonoBehaviour
     public bool previewNightmare;
 
     public bool Running { get; private set; }
+    bool boundaryHeld;
+    public void HoldBoundary(bool hold)
+    {
+        boundaryHeld = hold;
+        if (hold)
+        {
+            Origin = EclipseEncounter.ArenaCenter + Vector3.left * 150f;
+            Radius = 150f; from = 0f; to = 1f; seam = 1f; Running = true;
+            EnsureVisuals(); Publish();
+        }
+        else { Settle(WorldState.CurrentOrDream == World.Dream ? 0f : 1f); Publish(); }
+    }
     public Vector3 Origin { get; private set; }
     public float Radius { get; private set; } = 1e6f;
     public float Speed { get; private set; }
@@ -153,6 +165,7 @@ public class WorldShift : MonoBehaviour
 
     void Update()
     {
+        if (boundaryHeld) { UpdateVisuals(); Publish(); return; }
         if (Application.isPlaying && Running)
         {
             elapsed += Time.deltaTime;
@@ -296,7 +309,7 @@ public class WorldShift : MonoBehaviour
     void UpdateVisuals()
     {
         if (!Application.isPlaying) return;
-        bool show = Running && Radius < 140f;
+        bool show = Running && (boundaryHeld || Radius < 140f);
         if (shell != null)
         {
             shell.gameObject.SetActive(show);

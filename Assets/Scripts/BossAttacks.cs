@@ -84,8 +84,9 @@ public abstract class BossAttack
         step(1f);
     }
 
-    public static readonly Color Coral = new Color(1f, 0.42f, 0.5f), Cream = new Color(1f, 0.92f, 0.78f),
-        Cyan = new Color(0.3f, 0.9f, 1f), Gold = new Color(1f, 0.78f, 0.28f), Pink = new Color(1f, 0.6f, 0.85f),
+    // Historical colour names remain for attack layouts; dangerous Dream telegraphs are gold/cyan.
+    public static readonly Color Coral = new Color(1f, .72f, .18f), Cream = new Color(1f, .84f, .3f),
+        Cyan = new Color(0.3f, 0.9f, 1f), Gold = new Color(1f, 0.78f, 0.28f), Pink = new Color(.3f, .9f, 1f),
         Ember = new Color(1f, 0.33f, 0.05f), Amber = new Color(1f, 0.62f, 0.1f), Violet = new Color(0.66f, 0.25f, 1f),
         Blood = new Color(1f, 0.08f, 0.1f), WhiteHot = new Color(1f, 0.95f, 0.85f), Soot = new Color(0.35f, 0.08f, 0.12f);
 

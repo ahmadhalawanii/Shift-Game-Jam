@@ -17,16 +17,17 @@ public class HealingWell : MonoBehaviour
         if ((player.transform.position - transform.position).sqrMagnitude > radius * radius) return;
         if (avatar == null) avatar = player.GetComponentInChildren<MemoryAvatar>();
         if (avatar == null || avatar.health >= 1f) return;
-        avatar.health = Mathf.Min(1f, avatar.health + healPerSecond * Time.deltaTime);
         if (Time.time >= nextSpark)
         {
-            nextSpark = Time.time + 0.12f;
-            Fx.Burst(player.transform.position + Vector3.up, new Color(0.75f, 0.95f, 1f), 3);
+            nextSpark = Time.time + 1.5f;
+            Vector3 from = transform.position + Vector3.up * 1.1f;
+            var seed = EnemyBullet.SpawnBoss(from, player.transform.position + Vector3.up - from, 3f, .01f, World.Dream);
+            if (seed != null) seed.HeartSeed();
         }
         if (!announced && EclipseEncounter.Instance != null)
         {
             announced = true;
-            EclipseEncounter.Instance.Tell("The well remembers you. Health restored.", 3f);
+            EclipseEncounter.Instance.Tell("The well releases PINK Heart Seeds. Catch them with Ward.", 3f);
         }
     }
 }

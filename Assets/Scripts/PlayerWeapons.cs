@@ -94,6 +94,12 @@ public class PlayerWeapons : MonoBehaviour
             reserve[i] += whole;
         }
     }
+    // Stage D activates the existing Overdrive multipliers, cancelling reload/heat lockout.
+    public void BeginOverdrive(float seconds)
+    {
+        overdriveUntil = Time.time + seconds; lockoutUntil = 0f; Heat01 = 0f;
+        for (int i = 0; i < Count; i++) reloadLeft[i] = 0f;
+    }
 
     public void Select(int i)
     {
@@ -156,7 +162,7 @@ public class PlayerWeapons : MonoBehaviour
             }
             return;
         }
-        if (LucidInput.Pressed(LucidInput.Reload) && mag[Index] < w.magazine && reserve[Index] > 0) { LucidInput.Consume(LucidInput.Reload); BeginReload(w); return; }
+        if (!Overdrive && LucidInput.Pressed(LucidInput.Reload) && mag[Index] < w.magazine && reserve[Index] > 0) { LucidInput.Consume(LucidInput.Reload); BeginReload(w); return; }
 
         // One click, one shot (the press is buffered).
         if (!ready || Time.time < nextShot || !LucidInput.Pressed(LucidInput.Fire)) return;

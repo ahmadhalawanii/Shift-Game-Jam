@@ -27,6 +27,8 @@ public class WorldAmbience : MonoBehaviour
         sampleRate = AudioSettings.outputSampleRate;
         var source = GetComponent<AudioSource>();
         source.spatialBlend = 0f;
+        var mixer = Resources.Load<UnityEngine.Audio.AudioMixer>("LucidCombat");
+        if (mixer != null) { var groups = mixer.FindMatchingGroups("World"); if (groups.Length > 0) source.outputAudioMixerGroup = groups[0]; }
         source.loop = true;
         source.playOnAwake = true;
         // A silent looping clip keeps the source playing, so the filter below is always called.

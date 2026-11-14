@@ -46,6 +46,14 @@ public class MemoryAvatar : MonoBehaviour
         cc = GetComponentInParent<CharacterController>();
         player = GetComponentInParent<PlayerController>();
         combat = GetComponentInParent<PlayerCombat>();
+        // Nothing dark may follow the player: no shadows, and the delayed afterimages (Ghost1, Ghost2) are removed.
+        foreach (var r in GetComponentsInChildren<Renderer>(true))
+        {
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = false;
+        }
+        for (int i = 1; i < ghosts.Length; i++) if (ghosts[i] != null) Destroy(ghosts[i].gameObject);
+        if (ghosts.Length > 1) ghosts = new[] { ghosts[0] };
     }
 
     void OnEnable() { WorldState.Changed += OnWorldChanged; }
@@ -121,7 +129,7 @@ public class MemoryAvatar : MonoBehaviour
             block.SetColor("_Col2", Color.Lerp(headDream, headNightmare, mix));
             block.SetColor("_Tint", tints[i]);
             block.SetFloat("_Alpha", alphas[i]);
-            block.SetFloat("_DarkAlpha", i == 0 ? 0.35f : 0f);
+            block.SetFloat("_DarkAlpha", 0f); // the dark underlay pass read as a shadow blob under the figure
             block.SetFloat("_Walk", walkPhase - delays[i] * speed * strideRate);
             block.SetFloat("_Speed01", speed01);
             block.SetFloat("_Lean", lean);

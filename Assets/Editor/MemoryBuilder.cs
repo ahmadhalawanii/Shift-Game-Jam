@@ -87,8 +87,9 @@ public static class MemoryBuilder
         }
 
         var root = new GameObject("Lucid");
-        var ghosts = new Renderer[3];
-        for (int i = 0; i < 3; i++)
+        // One figure only: the old delayed afterimages read as a dark trail (MemoryAvatar also strips them at runtime).
+        var ghosts = new Renderer[1];
+        for (int i = 0; i < 1; i++)
         {
             var g = new GameObject("Ghost" + i);
             g.transform.SetParent(root.transform, false);

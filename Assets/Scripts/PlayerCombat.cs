@@ -59,6 +59,11 @@ public class PlayerCombat : MonoBehaviour
             shield.transform.localPosition = new Vector3(0, 1f, 0);
             shield.transform.localScale = Vector3.zero;
             shieldRenderer = shield.GetComponentInChildren<Renderer>();
+            if (shieldRenderer != null)
+            {
+                shieldRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; // no dark blob under the shield
+                shieldRenderer.receiveShadows = false;
+            }
             shieldBlock = new MaterialPropertyBlock();
         }
     }

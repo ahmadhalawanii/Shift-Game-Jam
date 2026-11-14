@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 // Installed by the existing HUD.
@@ -44,7 +43,7 @@ public class EclipseEncounter : MonoBehaviour
     void Update()
     {
         if (Time.time > noticeUntil) Notice = null;
-        if (Finished && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
+        if (Finished && LucidInput.Reload.WasPressedThisFrame())
         {
             Time.timeScale = 1f;
             retryBoss = BossFightStarted;
@@ -59,7 +58,7 @@ public class EclipseEncounter : MonoBehaviour
         EnemyBullet.Clear(Vector3.zero, float.PositiveInfinity);
         foreach (var enemy in Enemy.All.ToArray())
             if (enemy is WispEnemy) enemy.gameObject.SetActive(false);
-        Tell("THE ECLIPSE — Round orbs: absorb. Red waves: dash. Q shifts the world.", 5f);
+        Tell("THE ECLIPSE — Round orbs: absorb. Red waves: dash. Left Shift shifts the world.", 5f);
     }
     public void End(bool victory)
     {

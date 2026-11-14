@@ -7,6 +7,7 @@ public class Projectile : MonoBehaviour
     public float life = 1.3f;
     public float damage = 1f;
     public float homingRadsPerSec = 5f;
+    [System.NonSerialized] public PlayerCombat owner;
 
     Vector3 dir;
     Enemy target;
@@ -66,6 +67,7 @@ public class Projectile : MonoBehaviour
             if ((p - e.transform.position).sqrMagnitude < (e.radius + 0.15f) * (e.radius + 0.15f))
             {
                 e.TakeDamage(damage, p);
+                if (owner != null) owner.HitConfirm();
                 Fx.Burst(p, impactColor, heavy ? 24 : 5);
                 ThirdPersonCamera.Shake(heavy ? 0.16f : 0.03f);
                 Destroy(gameObject);

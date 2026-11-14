@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: MemoryFigure
-  m_Shader: {fileID: 4800000, guid: 169561d9aaa8640a395d1b0696f5f1f6, type: 3}
+  m_Name: SmokePuff
+  m_Shader: {fileID: 4800000, guid: 73bf5d08370d943f983e7ef3c753491e, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -25,15 +25,7 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _Alpha: 0.95
-    - _DarkAlpha: 0.35
-    - _Mix: 0
-    - _Size: 0.085
-    - _Strength: 1
-    m_Colors:
-    - _Col1: {r: 1, g: 0.85, b: 0.65999997, a: 1}
-    - _Col2: {r: 1, g: 0.7, b: 0.88, a: 1}
-    - _DarkCol: {r: 0.11999995, g: 0.049999982, b: 0.19999996, a: 1}
-    - _Tint: {r: 1, g: 1, b: 1, a: 1}
+    - _Soft: 0.4
+    m_Colors: []
   m_BuildTextureStacks: []
   m_AllowLocking: 1

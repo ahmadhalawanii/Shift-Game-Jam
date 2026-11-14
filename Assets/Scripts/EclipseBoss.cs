@@ -158,7 +158,7 @@ public class EclipseBoss : Enemy
         if (facing.sqrMagnitude > 4f)
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(-facing),
                 1f - Mathf.Exp(-3f * dt));
-        if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame) Weave();
+        if (LucidInput.Ability1.WasPressedThisFrame()) Weave();
         if (EclipseEncounter.Finished) return;
         remaining -= dt;
         WorldPressure(dt);
@@ -398,15 +398,15 @@ public class EclipseBoss : Enemy
         base.Die();
     }
 
-    // Editor and development builds only: 1/2/3 phase, N swap, T teleport, C cycle attacks, K kill, H hitboxes.
+    // Editor and development builds only: F5/F6/F7 phase, N swap, T teleport, V cycle attacks, K kill, H hitboxes.
     // Any of them before the fight starts drops the player into the arena.
     void DebugKeys()
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         var kb = Keyboard.current;
         if (kb == null) return;
-        bool any = kb.digit1Key.wasPressedThisFrame || kb.digit2Key.wasPressedThisFrame || kb.digit3Key.wasPressedThisFrame ||
-            kb.nKey.wasPressedThisFrame || kb.tKey.wasPressedThisFrame || kb.cKey.wasPressedThisFrame ||
+        bool any = kb.f5Key.wasPressedThisFrame || kb.f6Key.wasPressedThisFrame || kb.f7Key.wasPressedThisFrame ||
+            kb.nKey.wasPressedThisFrame || kb.tKey.wasPressedThisFrame || kb.vKey.wasPressedThisFrame ||
             kb.kKey.wasPressedThisFrame || kb.hKey.wasPressedThisFrame;
         if (!any) return;
         if (!Engaged)
@@ -419,12 +419,12 @@ public class EclipseBoss : Enemy
             beat = Beat.Fight;
             director.ScheduleTeleport();
         }
-        if (kb.digit1Key.wasPressedThisFrame) DebugPhase(1);
-        if (kb.digit2Key.wasPressedThisFrame) DebugPhase(2);
-        if (kb.digit3Key.wasPressedThisFrame) DebugPhase(3);
+        if (kb.f5Key.wasPressedThisFrame) DebugPhase(1);
+        if (kb.f6Key.wasPressedThisFrame) DebugPhase(2);
+        if (kb.f7Key.wasPressedThisFrame) DebugPhase(3);
         if (kb.nKey.wasPressedThisFrame) ForceWorld(CurrentWorld == World.Dream ? World.Nightmare : World.Dream);
         if (kb.tKey.wasPressedThisFrame) { beat = Beat.Fight; director.ForceTeleport(); }
-        if (kb.cKey.wasPressedThisFrame) { beat = Beat.Fight; Tell("DEBUG  /  " + director.CycleNext(), 2f); }
+        if (kb.vKey.wasPressedThisFrame) { beat = Beat.Fight; Tell("DEBUG  /  " + director.CycleNext(), 2f); }
         if (kb.kKey.wasPressedThisFrame) Die();
         if (kb.hKey.wasPressedThisFrame) { BossHazards.ShowHitboxes = !BossHazards.ShowHitboxes; Tell("HITBOXES " + (BossHazards.ShowHitboxes ? "ON (enable Gizmos)" : "OFF"), 1.5f); }
 #endif

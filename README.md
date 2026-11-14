@@ -23,11 +23,11 @@ The old Level1 and its Poly Haven assets were removed (see git history). The com
 | WASD | move | move |
 | Mouse | look (in the boss fight: small nudge only, see below) | look and aim (shards bend toward the nearest enemy) |
 | Left mouse (hold) | strike (the boss is armoured, except in the wake window) | fire a stream of shards; shoot Hunter Orbs and meteors for Power |
-| Right mouse (hold, release) | raise the shield and absorb seeds (Power, Resonance); release to cast a burst | charge and release a heavy burst |
-| Shift | dash (brief invulnerability, chain dashes for speed); one dash in the air | same |
-| Space | jump (hops ground shockwaves); hold while falling to hover for 0.6 s | jump (lower, no hover) |
-| Jump along a glowing wall | wall-run for up to 1.8 s, Space to leap off | same |
-| Q | shift world (during the 1.2 s swap warning: +3 Power). The swap is a wave that starts at you | same |
+| Right mouse (hold) | raise the shield and absorb seeds (Power, Resonance); release to cast a burst | aim over the shoulder (C swaps shoulder) |
+| Space | smoke dash: 2 charges, invulnerable while smoke; one dash in the air | same |
+| Left Ctrl | jump; hold while falling to hover for 0.6 s | jump (lower, no hover) |
+| Jump along a glowing wall | wall-run for up to 1.8 s, Left Ctrl to leap off | same |
+| Left Shift | shift world (during the 1.2 s swap warning: +3 Power). The swap is a wave that starts at you | same |
 | E | at Resonance x5: Lucid Pulse. In the finale: bind the Sleeper with full Power | |
 | R after defeat/victory | retry | retry |
 | `[` and `]` | test only: lower and raise health | |
@@ -47,10 +47,10 @@ Boss debug keys (editor and development builds only; pressing one before the fig
 
 | Key | Action |
 |---|---|
-| 1, 2, 3 | jump to boss phase |
+| F5, F6, F7 | jump to boss phase |
 | N | force a world swap |
 | T | force a Sleepwalk teleport |
-| C | cycle through every attack one by one (the spec says A, but A strafes) |
+| V | cycle through every attack one by one |
 | K | kill the boss |
 | H | toggle hitbox drawing (turn Gizmos on in the Game view) |
 | L | toggle the boss lock-on camera (Gizmos show the weighted look point; the HUD shows distance, FOV and nudge) |
@@ -61,6 +61,8 @@ Entering the arena (`BossArenaTrigger`, created at runtime) locks the camera on 
 
 Health: the HEALTH bar (bottom left) drops at once on a hit and a pale chip drains after 0.4 s. Below 40% health the screen corners turn red (off again above 45%).
 
+Combat redesign in progress: see [COMBAT_NOTES.md](COMBAT_NOTES.md) for the current controls, tuning values and cuts.
+
 ## Where things are
 
 | Path | What |
@@ -68,7 +70,8 @@ Health: the HEALTH bar (bottom left) drops at once on a hit and a pale chip drai
 | `Assets/Scripts/` | Runtime code. `WorldState` is the Dream/Nightmare switch, `WorldMaterialSwap` reacts to it, `WorldLook` blends sky, fog and light. |
 | `Assets/Scripts/PlayerController.cs` | Flow movement, dash chain, recall (flow back when you fall) and damage. |
 | `Assets/Scripts/PlayerCombat.cs` | Shoot in Nightmare, shield in Dream. `Projectile`, `Enemy`, `WispEnemy`, `EnemyBullet` are the combat pieces. |
-| `Assets/Scripts/MemoryAvatar.cs` | The player visual. A figure of light points animated in the shader (`Assets/Shaders/MemoryFigure.shader`). |
+| `Assets/Scripts/LucidInput.cs` | The single input layer. All gameplay input and bindings (keyboard, mouse, gamepad) live here. |
+| `Assets/Scripts/MemoryAvatar.cs` | The player visual, the Dreamwalker: a hooded figure animated in the shader (`Assets/Shaders/Dreamwalker.shader`). `SmokeDash` is the dash effect. |
 | `Assets/Editor/` | Builder tools. They create prefabs, materials and the level from code. See the table below. |
 | `Assets/Editor/World/` | The new world. `WorldMeshes` and `WorldKit` build the procedural kit, `WorldLevelBuilder` lays out the six zones and the arena, `WorldShots` renders review screenshots, `WorldBot` drives the player along a route in Play mode. |
 | `Assets/Scripts/World/` | Runtime for the new world. `WorldShift` runs the swap wave and the shader globals, `LucidWorldLook` blends fog, light and post, `LevelFlow` holds zones, checkpoints, fall recovery and the level keys, plus phase platforms, wall-run surfaces, bounce blossoms, the three enemies and the ambience synth. |

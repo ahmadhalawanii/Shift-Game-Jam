@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class PlayerCombat : MonoBehaviour
 {
@@ -31,6 +30,10 @@ public class PlayerCombat : MonoBehaviour
     public float Kick { get; private set; }
     public float ShieldRadius { get { return shieldRadius; } }
     public bool IsChargingBurst { get; private set; }
+    // Nightmare: right mouse aims over the shoulder. Dream: right mouse raises the shield.
+    public bool Aiming { get; private set; }
+    public float LastHitConfirm { get; private set; } = -99f;
+    public void HitConfirm() { LastHitConfirm = Time.unscaledTime; }
     public float BurstCharge01 { get { return IsChargingBurst ? Mathf.Clamp01(chargeAge / Mathf.Max(0.05f, burstChargeTime)) : 0f; } }
 
     PlayerController pc;
@@ -91,15 +94,18 @@ public class PlayerCombat : MonoBehaviour
             return;
         }
         World w = WorldState.Instance != null ? WorldState.Instance.Current : World.Dream;
-        var mouse = Mouse.current;
-        if (mouse == null || (pc != null && pc.Recalling) || (avatar != null && avatar.health <= 0f))
+        if ((pc != null && pc.Recalling) || (avatar != null && avatar.health <= 0f))
         {
+            Aiming = false;
             CancelBurst();
             HideShield();
             return;
         }
 
-        if (mouse.rightButton.wasPressedThisFrame && Time.time >= nextBurst)
+        bool aimHeld = LucidInput.AimHeld;
+        Aiming = w == World.Nightmare && aimHeld;
+        if (w == World.Nightmare && IsChargingBurst) CancelBurst();
+        if (w == World.Dream && aimHeld && !IsChargingBurst && Time.time >= nextBurst)
         {
             chargeAge = 0f;
             IsChargingBurst = true;
@@ -111,14 +117,14 @@ public class PlayerCombat : MonoBehaviour
         {
             chargeAge += Time.deltaTime;
             if (chargingVisual != null) chargingVisual.SetCharge(BurstCharge01);
-            if (!mouse.rightButton.isPressed) ReleaseBurst();
+            if (!aimHeld) ReleaseBurst();
         }
 
-        ShieldUp = w == World.Dream && IsChargingBurst && mouse.rightButton.isPressed;
+        ShieldUp = w == World.Dream && IsChargingBurst && aimHeld;
         if (pc != null && pc.LastHitTime > resonanceSince && resonanceAbsorbs > 0) ResetResonance();
         Kick = Mathf.MoveTowards(Kick, 0f, 9f * Time.deltaTime);
-        bool striking = mouse.leftButton.isPressed && !IsChargingBurst;
-        if (striking || IsChargingBurst) FaceAim();
+        bool striking = LucidInput.Fire.IsPressed() && !IsChargingBurst;
+        if (striking || IsChargingBurst || Aiming) FaceAim();
         if (striking && Time.time >= nextShot) Fire(false);
 
         if (shield != null)
@@ -138,6 +144,8 @@ public class PlayerCombat : MonoBehaviour
     Vector3 FlatAim()
     {
         Vector3 f = cam != null ? cam.transform.forward : transform.forward;
+        // The aim camera sits off the shoulder: shoot at the point under the crosshair, not parallel to the view.
+        if (cam != null && ThirdPersonCamera.Aiming) f = cam.transform.position + f * 30f - transform.position;
         f.y = 0f;
         return f.sqrMagnitude > 0.001f ? f.normalized : transform.forward;
     }
@@ -187,7 +195,8 @@ public class PlayerCombat : MonoBehaviour
         if (shard != null && shard.TryGetComponent<Projectile>(out var projectile))
         {
             projectile.Init(dir, target);
-            projectile.Configure(heavy ? damage : threadDamage, tint, heavy);
+            projectile.Configure((heavy ? damage : threadDamage) * (pc != null ? pc.TakeDashShotBonus() : 1f), tint, heavy);
+            projectile.owner = this;
         }
         Fx.Burst(origin, tint, heavy ? 22 : 4);
         LucidAudio.Play(heavy ? LucidAudio.Cue.Burst : LucidAudio.Cue.Thread);
@@ -237,6 +246,7 @@ public class PlayerCombat : MonoBehaviour
 
     void OnDisable()
     {
+        Aiming = false;
         CancelBurst();
         HideShield();
     }

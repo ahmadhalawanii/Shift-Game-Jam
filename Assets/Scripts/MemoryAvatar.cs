@@ -1,45 +1,34 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
 
-// The player as a fading memory: a figure of drifting light.
-// health (0..1): lower health means more of the figure has dissolved.
-// The body is animated in the shader from the parameters set here (stride, lean, aim, shield, dash, flinch).
+// The player visual: the Dreamwalker. Holds the player's health (0..1) and drives the Lucid/Dreamwalker shader,
+// which animates the body from these parameters (stride, lean, aim, ward, recoil, reload, hurt, dissolve).
 public class MemoryAvatar : MonoBehaviour
 {
     [FormerlySerializedAs("memory")] [Range(0f, 1f)] public float health = 1f;
-    public Renderer[] ghosts;               // 0 = the figure, 1 and 2 = delayed afterimages
-    public float[] delays = { 0f, 0.12f, 0.24f };
-    public float[] alphas = { 0.5f, 0.22f, 0.18f };
-    public Color[] tints = { Color.white, new Color(1f, 0.3f, 0.4f), new Color(0.3f, 0.8f, 1f) };
+    public Renderer[] ghosts;               // 0 = the body
     public Light glow;
 
-    [Header("Look")]
-    public Color feetDream = new Color(1f, 0.72f, 0.45f);
-    public Color headDream = new Color(1f, 0.55f, 0.82f);
-    public Color feetNightmare = new Color(1f, 0.23f, 0.06f);
-    public Color headNightmare = new Color(0.48f, 0.06f, 0.03f);
-    public float bobHeight = 0.05f;
-
     [Header("Animation")]
-    public float strideRate = 1.4f;     // walk cycle radians per unit travelled
-    public float leanAmount = 0.35f;    // radians of forward lean at full speed
+    public float strideRate = 2.6f;     // walk cycle radians per metre
+    public float leanAmount = 0.3f;     // radians of lean at full speed
+    public float turnSpeed = 16f;
+    [Range(0f, 1f)] public float reload01;  // set by the weapon while reloading
 
-    struct Sample { public float t; public Vector3 pos; public float yaw; }
+    static readonly int MixId = Shader.PropertyToID("_Mix"), WalkId = Shader.PropertyToID("_Walk"), SpeedId = Shader.PropertyToID("_Speed01"),
+        LeanId = Shader.PropertyToID("_Lean"), RollId = Shader.PropertyToID("_Roll"), AimId = Shader.PropertyToID("_Aim"),
+        ShieldId = Shader.PropertyToID("_Shield"), KickId = Shader.PropertyToID("_Kick"), ReloadId = Shader.PropertyToID("_Reload"),
+        HitId = Shader.PropertyToID("_Hit"), WhipId = Shader.PropertyToID("_Whip"), DissolveId = Shader.PropertyToID("_Dissolve"),
+        HealthId = Shader.PropertyToID("_Health");
 
-    readonly List<Sample> history = new List<Sample>();
     MaterialPropertyBlock block;
     CharacterController cc;
     PlayerController player;
     PlayerCombat combat;
-    float scatterUntil;
-    float scatterLength = 0.01f;
-    float yaw;
-    float sharpenUntil;
-
-    // Smoothed animation state.
-    float walkPhase, speed01, lean, aim, shield, stretch, hit;
+    float scatterUntil, scatterLength = 0.01f, sharpenUntil;
+    float yaw, walkPhase, speed01, lean, roll, aim, shield, hit, whip, dissolve, flash;
+    bool smoke;
 
     void Awake()
     {
@@ -47,113 +36,104 @@ public class MemoryAvatar : MonoBehaviour
         cc = GetComponentInParent<CharacterController>();
         player = GetComponentInParent<PlayerController>();
         combat = GetComponentInParent<PlayerCombat>();
-        // Nothing dark may follow the player: no shadows, and the delayed afterimages (Ghost1, Ghost2) are removed.
+        yaw = transform.eulerAngles.y;
+        // Nothing dark may follow the player: no shadows.
         foreach (var r in GetComponentsInChildren<Renderer>(true))
         {
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             r.receiveShadows = false;
         }
-        for (int i = 1; i < ghosts.Length; i++) if (ghosts[i] != null) Destroy(ghosts[i].gameObject);
-        if (ghosts.Length > 1) ghosts = new[] { ghosts[0] };
     }
 
     void OnEnable() { WorldState.Changed += OnWorldChanged; }
     void OnDisable() { WorldState.Changed -= OnWorldChanged; }
 
-    // The figure bursts and reforms when the world flips.
     void OnWorldChanged(World w)
     {
         Scatter(0.3f);
         ThirdPersonCamera.Shake(0.15f);
     }
 
-    // Dash: the figure bursts into particles and reforms.
+    // The figure frays for a moment (teleport, world swap, recall).
     public void Scatter(float seconds)
     {
         scatterLength = Mathf.Max(0.01f, seconds);
         scatterUntil = Time.time + scatterLength;
     }
 
-    // Brief snap back into focus (for a perfect absorb).
+    // Brief bright pulse of the core (for a perfect absorb).
     public void Sharpen() { sharpenUntil = Time.time + 0.35f; }
+
+    // Smoke dash: the body dissolves completely while on, and reforms with a cloak whip and a light flash when off.
+    public void SetSmoke(bool on)
+    {
+        if (smoke && !on) { whip = 1f; flash = 1f; }
+        smoke = on;
+    }
 
     void Update()
     {
-        var kb = Keyboard.current;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        var kb = Keyboard.current;   // test only: lower and raise health
         if (kb != null)
         {
             if (kb.leftBracketKey.isPressed) health = Mathf.Max(0.05f, health - 0.4f * Time.deltaTime);
             if (kb.rightBracketKey.isPressed) health = Mathf.Min(1f, health + 0.4f * Time.deltaTime);
         }
-
+#endif
+        if (ghosts == null || ghosts.Length == 0 || ghosts[0] == null) return;
         float dt = Time.deltaTime;
-        float t = Time.time;
         Vector3 v = cc != null ? cc.velocity : Vector3.zero;
         v.y = 0f;
         float speed = v.magnitude;
-        if (speed > 0.5f && !ThirdPersonCamera.LockedOn && combat != null && !combat.Firing && !combat.IsChargingBurst) yaw = Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg;
-        else if (player != null) yaw = player.transform.eulerAngles.y;
+        bool facing = ThirdPersonCamera.LockedOn || ThirdPersonCamera.Aiming || (combat != null && (combat.Firing || combat.IsChargingBurst));
+        float wantYaw = speed > 0.5f && !facing ? Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg : (player != null ? player.transform.eulerAngles.y : yaw);
+        yaw = Mathf.LerpAngle(yaw, wantYaw, 1f - Mathf.Exp(-turnSpeed * dt));
 
-        // Animation targets.
+        // Lean into the movement, in the body's own frame: forward and back pitch, strafes roll.
         float maxSp = player != null ? player.maxSpeed : 8f;
-        float sp = Mathf.Clamp01(speed / maxSp);
-        bool dashing = player != null && player.IsDashing;
+        Vector3 local = Quaternion.Euler(0f, -yaw, 0f) * v / maxSp;
+        bool aiming = combat != null && (combat.Firing || combat.Aiming);
         walkPhase += speed * strideRate * dt;
-        speed01 = Mathf.MoveTowards(speed01, sp, 6f * dt);
-        lean = Mathf.MoveTowards(lean, sp * leanAmount + (dashing ? 0.25f : 0f), 3f * dt);
-        aim = Mathf.MoveTowards(aim, (combat != null && combat.Firing) ? 1f : 0f, 8f * dt);
-        shield = Mathf.MoveTowards(shield, (combat != null && combat.IsChargingBurst) ? 1f : 0f, 8f * dt);
-        stretch = Mathf.MoveTowards(stretch, dashing ? 1f : 0f, 12f * dt);
+        speed01 = Mathf.MoveTowards(speed01, Mathf.Clamp01(speed / maxSp), 6f * dt);
+        lean = Mathf.MoveTowards(lean, Mathf.Clamp(local.z, -1f, 1.5f) * leanAmount, 3f * dt);
+        roll = Mathf.MoveTowards(roll, -Mathf.Clamp(local.x, -1.5f, 1.5f) * leanAmount, 3f * dt);
+        aim = Mathf.MoveTowards(aim, aiming ? 1f : 0f, 8f * dt);
+        shield = Mathf.MoveTowards(shield, combat != null && combat.ShieldUp ? 1f : 0f, 8f * dt);
+        whip = Mathf.MoveTowards(whip, 0f, 3.5f * dt);
+        flash = Mathf.MoveTowards(flash, 0f, 5f * dt);
         float sinceHit = player != null ? Time.time - player.LastHitTime : 99f;
         hit = Mathf.Clamp01(1f - sinceHit / 0.3f);
-        float kick = combat != null ? combat.Kick : 0f;
 
-        Vector3 basePos = transform.position + Vector3.up * (0.05f + Mathf.Sin(t * 2f) * bobHeight * (1f - speed01));
-        history.Add(new Sample { t = t, pos = basePos, yaw = yaw });
-        while (history.Count > 240) history.RemoveAt(0);
-
-        float mix = WorldState.MixOrZero;
         float scatter = Time.time < scatterUntil ? Mathf.Sin((scatterUntil - Time.time) / scatterLength * Mathf.PI) : 0f;
-        float sharp = Time.time < sharpenUntil ? 0.15f : 0f;
-        float strength = Mathf.Clamp01(health + sharp - scatter * 0.9f) * 1.02f;
+        bool dead = health <= 0f;
+        float wantDissolve = smoke || dead ? 1f : scatter * 0.55f;
+        dissolve = Mathf.MoveTowards(dissolve, wantDissolve, (dead ? 1.2f : smoke ? 22f : 8f) * dt);
+        float mix = WorldState.MixOrZero;
+        float sharp = Time.time < sharpenUntil ? 0.5f : 0f;
 
-        for (int i = 0; i < ghosts.Length; i++)
-        {
-            var s = SampleAt(t - delays[i]);
-            ghosts[i].transform.position = s.pos;
-            ghosts[i].transform.rotation = Quaternion.Euler(0, s.yaw, 0);
-
-            ghosts[i].GetPropertyBlock(block);
-            block.SetFloat("_Strength", strength);
-            block.SetFloat("_Mix", mix);
-            block.SetColor("_Col1", Color.Lerp(feetDream, feetNightmare, mix));
-            block.SetColor("_Col2", Color.Lerp(headDream, headNightmare, mix));
-            block.SetColor("_Tint", tints[i]);
-            block.SetFloat("_Alpha", alphas[i]);
-            block.SetFloat("_DarkAlpha", 0f); // the dark underlay pass read as a shadow blob under the figure
-            block.SetFloat("_Walk", walkPhase - delays[i] * speed * strideRate);
-            block.SetFloat("_Speed01", speed01);
-            block.SetFloat("_Lean", lean);
-            block.SetFloat("_Aim", aim);
-            block.SetFloat("_Shield", shield);
-            block.SetFloat("_Stretch", stretch);
-            block.SetFloat("_Hit", hit);
-            block.SetFloat("_Kick", kick);
-            block.SetFloat("_CastHand", combat != null && combat.HeavyCast ? 1f : -1f);
-            ghosts[i].SetPropertyBlock(block);
-        }
+        var body = ghosts[0];
+        body.transform.SetPositionAndRotation(transform.position, Quaternion.Euler(0f, yaw, 0f));
+        body.GetPropertyBlock(block);
+        block.SetFloat(MixId, mix);
+        block.SetFloat(WalkId, walkPhase);
+        block.SetFloat(SpeedId, speed01);
+        block.SetFloat(LeanId, lean);
+        block.SetFloat(RollId, roll);
+        block.SetFloat(AimId, aim);
+        block.SetFloat(ShieldId, shield);
+        block.SetFloat(KickId, combat != null ? combat.Kick : 0f);
+        block.SetFloat(ReloadId, reload01);
+        block.SetFloat(HitId, hit);
+        block.SetFloat(WhipId, whip);
+        block.SetFloat(DissolveId, dissolve);
+        block.SetFloat(HealthId, Mathf.Clamp01(health + sharp));
+        body.SetPropertyBlock(block);
 
         if (glow != null)
         {
             glow.color = Color.Lerp(new Color(1f, 0.8f, 0.65f), new Color(1f, 0.3f, 0.12f), mix);
-            glow.intensity = Mathf.Lerp(0.4f, 1.6f, health) * (1f - scatter * 0.7f) * (1f + aim * 0.8f + shield * 0.6f);
+            glow.intensity = Mathf.Lerp(0.3f, 1.2f, health) * (1f - dissolve * 0.8f) * (1f + aim * 0.5f + shield * 0.5f) + flash * 6f;
         }
-    }
-
-    Sample SampleAt(float time)
-    {
-        for (int i = history.Count - 1; i >= 0; i--)
-            if (history[i].t <= time) return history[i];
-        return history[0];
     }
 }

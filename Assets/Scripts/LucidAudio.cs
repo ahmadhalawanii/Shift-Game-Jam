@@ -3,10 +3,10 @@ using UnityEngine;
 // Small synthesized cues, cached for the lifetime of the Level 1 encounter.
 public sealed class LucidAudio : MonoBehaviour
 {
-    public enum Cue { Thread, Charge, Burst, Capture, Shift, Warning, Fusion, Victory }
+    public enum Cue { Thread, Charge, Burst, Capture, Shift, Warning, Fusion, Victory, DashDream, DashNightmare }
     static LucidAudio instance;
     AudioSource source;
-    readonly AudioClip[] clips = new AudioClip[8];
+    readonly AudioClip[] clips = new AudioClip[10];
     readonly AudioClip[] resonance = new AudioClip[5];
     readonly System.Collections.Generic.Dictionary<string, AudioClip> hooks = new System.Collections.Generic.Dictionary<string, AudioClip>();
     readonly System.Collections.Generic.List<AudioClip> owned = new System.Collections.Generic.List<AudioClip>();
@@ -24,7 +24,7 @@ public sealed class LucidAudio : MonoBehaviour
     {
         if (instance == null) return;
         int index = (int)cue;
-        if (instance.clips[index] == null) instance.clips[index] = Create(cue);
+        if (instance.clips[index] == null) instance.clips[index] = cue >= Cue.DashDream ? Dash(cue == Cue.DashNightmare) : Create(cue);
         instance.source.PlayOneShot(instance.clips[index], cue == Cue.Thread ? 0.25f : 0.48f);
     }
 
@@ -75,6 +75,45 @@ public sealed class LucidAudio : MonoBehaviour
             data[i] = envelope * (Mathf.Sin(phase) * 0.44f + Mathf.Sin(phase * 2f) * 0.12f);
         }
         var clip = AudioClip.Create(name, count, 1, Rate, false);
+        clip.SetData(data, 0);
+        return clip;
+    }
+
+    // Smoke dash: a breath of filtered noise that opens and closes.
+    // Dream adds a soft two-note chime, Nightmare a low thump under a darker whoosh.
+    static AudioClip Dash(bool nightmare)
+    {
+        float duration = nightmare ? 0.5f : 0.42f;
+        int count = (int)(Rate * duration);
+        var data = new float[count];
+        var random = new System.Random(nightmare ? 7 : 3);
+        float low = 0f, band = 0f, phase = 0f;
+        for (int i = 0; i < count; i++)
+        {
+            float t = (float)i / count;
+            float sec = (float)i / Rate;
+            // State-variable filter swept up then down: the whoosh.
+            float sweep = Mathf.Sin(Mathf.Pow(t, 0.6f) * Mathf.PI);
+            float cutoff = nightmare ? Mathf.Lerp(180f, 1500f, sweep) : Mathf.Lerp(700f, 4200f, sweep);
+            float f = 2f * Mathf.Sin(Mathf.PI * cutoff / Rate);
+            float noise = (float)random.NextDouble() * 2f - 1f;
+            low += f * band;
+            band += f * (noise - low - 0.5f * band);
+            float whoosh = band * sweep * (nightmare ? 0.75f : 0.5f);
+            float tone;
+            if (nightmare)
+            {
+                phase += 2f * Mathf.PI * Mathf.Lerp(95f, 38f, Mathf.Min(1f, sec / 0.18f)) / Rate;
+                tone = Mathf.Sin(phase) * Mathf.Exp(-sec * 11f) * 0.9f;
+            }
+            else
+            {
+                tone = (Mathf.Sin(2f * Mathf.PI * 1318.5f * sec) * Mathf.Exp(-sec * 9f)
+                    + Mathf.Sin(2f * Mathf.PI * 1975.5f * Mathf.Max(0f, sec - 0.06f)) * Mathf.Exp(-Mathf.Max(0f, sec - 0.06f) * 8f) * (sec > 0.06f ? 0.7f : 0f)) * 0.22f;
+            }
+            data[i] = Mathf.Clamp(whoosh + tone, -1f, 1f) * Mathf.Min(1f, t * 60f);
+        }
+        var clip = AudioClip.Create(nightmare ? "DashNightmare" : "DashDream", count, 1, Rate, false);
         clip.SetData(data, 0);
         return clip;
     }

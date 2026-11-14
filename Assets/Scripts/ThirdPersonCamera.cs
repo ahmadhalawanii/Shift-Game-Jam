@@ -9,7 +9,6 @@ public class ThirdPersonCamera : MonoBehaviour
     public Transform target;
     public float distance = 9f;
     public float height = 1.6f;
-    public float sensitivity = 0.12f;
     public float minPitch = -10f;
     public float maxPitch = 55f;
 
@@ -19,7 +18,24 @@ public class ThirdPersonCamera : MonoBehaviour
     public float fovKick = 14f;         // extra FOV at full speed
     public float distanceKick = 1.5f;
 
+    // Over-the-shoulder aim: above and behind the shoulder. It blends on top of the free or the lock-on pose.
+    [Header("Aim (over the shoulder)")]
+    public float aimRight = 0.6f;
+    public float aimUp = 1.7f;
+    public float aimBack = 2.2f;
+    public float aimFov = 57f;
+    public float aimBlend = 0.2f;
+    public float aimLookScale = 0.7f;       // mouse look is slower while aiming
+    [Range(0f, 1f)] public float aimBossScreenY = 0.68f; // locked on: the boss core sits here (upper middle)
+    public float shoulderSwapTime = 0.15f;
+
     public static ThirdPersonCamera Instance;
+    public static bool Aiming => Instance != null && Instance.aimWanted;
+    public static void FovPunch(float degrees) { if (Instance != null) Instance.fovPunch = Mathf.Max(Instance.fovPunch, degrees); }
+    public float AimWeight { get; private set; }
+    bool aimWanted;
+    float aimT, aimArm, shoulder = 1f, shoulderTarget = 1f, fovPunch;
+    PlayerCombat combat;
     float trauma;
     public static void Shake(float amount) { if (Instance != null) Instance.trauma = Mathf.Min(1f, Instance.trauma + amount); }
 
@@ -68,6 +84,7 @@ public class ThirdPersonCamera : MonoBehaviour
             yaw = target.eulerAngles.y;
             lockYaw = yaw;
             player = target.GetComponent<PlayerController>();
+            combat = target.GetComponent<PlayerCombat>();
         }
     }
 
@@ -85,12 +102,11 @@ public class ThirdPersonCamera : MonoBehaviour
 
         // While locked, the free camera follows the lock's yaw so the blend back starts behind the player.
         if (LockWeight > 0f) yaw = lockYaw;
-        var mouse = Mouse.current;
-        if (mouse != null && LockWeight <= 0f)
+        if (LockWeight <= 0f)
         {
-            Vector2 d = mouse.delta.ReadValue();
-            yaw += d.x * sensitivity;
-            pitch = Mathf.Clamp(pitch - d.y * sensitivity, minPitch, maxPitch);
+            Vector2 d = LucidInput.LookDelta * Mathf.Lerp(1f, aimLookScale, AimWeight);
+            yaw += d.x;
+            pitch = Mathf.Clamp(pitch - d.y, minPitch, maxPitch);
         }
         Quaternion freeRot = FreePose();
 
@@ -110,6 +126,13 @@ public class ThirdPersonCamera : MonoBehaviour
             if (cam != null) cam.fieldOfView = freeFov;
         }
 
+        AimPose(boss, finished);
+        if (cam != null && fovPunch > 0f)
+        {
+            cam.fieldOfView += fovPunch;
+            fovPunch = Mathf.MoveTowards(fovPunch, 0f, 45f * Time.unscaledDeltaTime);
+        }
+
         if (trauma > 0f)
         {
             // While locked the shake is smaller and mostly sideways, so the bullet plane stays put on screen.
@@ -118,6 +141,54 @@ public class ThirdPersonCamera : MonoBehaviour
             transform.position += transform.rotation * s;
             trauma = Mathf.Max(0f, trauma - 2.2f * Time.unscaledDeltaTime);
         }
+    }
+
+    // Blends the current pose toward the shoulder camera while the player aims.
+    // Free: looks where the mouse looks. Locked on: keeps orbiting the boss and frames its core in the upper middle.
+    void AimPose(EclipseBoss boss, bool finished)
+    {
+        float udt = Time.unscaledDeltaTime;
+        aimWanted = combat != null && combat.Aiming && !finished;
+        if (LucidInput.SwapShoulder.WasPressedThisFrame()) shoulderTarget = -shoulderTarget;
+        shoulder = Mathf.MoveTowards(shoulder, shoulderTarget, 2f * udt / Mathf.Max(0.01f, shoulderSwapTime));
+        bool starting = aimT <= 0f;
+        aimT = Mathf.MoveTowards(aimT, aimWanted ? 1f : 0f, udt / Mathf.Max(0.01f, aimBlend));
+        AimWeight = Mathf.SmoothStep(0f, 1f, aimT);
+        if (AimWeight <= 0f) return;
+
+        bool onBoss = LockWeight > 0.5f && boss != null;
+        float armYaw = onBoss ? lockYaw : yaw;
+        Quaternion rot = Quaternion.Euler(onBoss ? 8f : pitch, armYaw, 0f);
+        Vector3 origin = target.position + Vector3.up * aimUp;
+        Vector3 desired = origin + Quaternion.Euler(0f, armYaw, 0f) * Vector3.right * (aimRight * shoulder) - rot * Vector3.forward * aimBack;
+        Vector3 dir = desired - origin;
+        float length = dir.magnitude;
+        dir /= Mathf.Max(0.01f, length);
+        // Deoccluder: the arm shortens at once when something is in the way and eases back out.
+        float free = length;
+        int hits = Physics.SphereCastNonAlloc(origin, 0.25f, dir, obstructionHits, length,
+            Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < hits; i++)
+            if (!obstructionHits[i].transform.IsChildOf(target))
+                free = Mathf.Min(free, Mathf.Max(0.3f, obstructionHits[i].distance - 0.05f));
+        aimArm = starting || free < aimArm ? free : Mathf.MoveTowards(aimArm, free, 8f * udt);
+        Vector3 pos = origin + dir * aimArm;
+
+        if (onBoss)
+        {
+            if (bossVisual == null || bossVisual.gameObject != boss.gameObject) bossVisual = boss.GetComponent<EclipseVisual>();
+            Vector3 core = BossAnchor(boss) + (bossVisual != null && bossVisual.Core != null ? bossVisual.Core.position - boss.transform.position : Vector3.zero);
+            Vector3 flat = core - pos; flat.y = 0f;
+            float viewYaw = flat.sqrMagnitude > 0.01f ? Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg : armYaw;
+            float up = Elevation(pos, core) - Mathf.Atan((aimBossScreenY * 2f - 1f) * Mathf.Tan(aimFov * 0.5f * Mathf.Deg2Rad)) * Mathf.Rad2Deg;
+            // Never tilt up so far that the player drops out of the bottom of the frame.
+            float tanHalf = Mathf.Tan(aimFov * 0.5f * Mathf.Deg2Rad);
+            up = Mathf.Min(up, Elevation(pos, target.position + Vector3.up * 0.9f) - Mathf.Atan((lockCfg.minPlayerScreenY * 2f - 1f) * tanHalf) * Mathf.Rad2Deg);
+            rot = Quaternion.AngleAxis(nudge.x, Vector3.up) * Quaternion.Euler(-up, viewYaw, 0f) * Quaternion.AngleAxis(-nudge.y, Vector3.right);
+        }
+        transform.position = Vector3.Lerp(transform.position, pos, AimWeight);
+        transform.rotation = Quaternion.Slerp(transform.rotation, rot, AimWeight);
+        if (cam != null) cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, aimFov, AimWeight);
     }
 
     // The original free camera. Writes freePos and freeFov, returns its rotation.
@@ -195,8 +266,7 @@ public class ThirdPersonCamera : MonoBehaviour
         rotation = Quaternion.Euler(-viewPitch, viewYaw, 0f);
 
         // Mouse only nudges the view a few degrees and springs back; it never moves the arm.
-        var mouse = Mouse.current;
-        if (mouse != null && !EclipseEncounter.Finished) nudge += mouse.delta.ReadValue() * c.nudgeSensitivity;
+        if (!EclipseEncounter.Finished) nudge += LucidInput.Look.ReadValue<Vector2>() * c.nudgeSensitivity;
         nudge = Vector2.ClampMagnitude(nudge, c.nudgeMax);
         nudge = Vector2.Lerp(nudge, Vector2.zero, 1f - Mathf.Exp(-c.nudgeReturn * dt));
         rotation = Quaternion.AngleAxis(nudge.x, Vector3.up) * rotation * Quaternion.AngleAxis(-nudge.y, Vector3.right);

@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 // The world swap as a travelling wave. WorldState still decides which world is active; this turns each
 // change into a front that expands from an origin, and publishes it to the Lucid/World shaders:
@@ -141,8 +140,7 @@ public class WorldShift : MonoBehaviour
         if (NextOrigin.HasValue) return NextOrigin.Value;
         if (player == null) player = FindFirstObjectByType<PlayerController>();
         Vector3 playerPos = player != null ? player.transform.position + Vector3.up : Vector3.zero;
-        var kb = Keyboard.current;
-        if (kb != null && kb.qKey.wasPressedThisFrame) return playerPos; // the player shifted
+        if (LucidInput.SwapStance.WasPressedThisFrame()) return playerPos; // the player shifted
         var encounter = EclipseEncounter.Instance;
         if (encounter != null && encounter.Boss != null && encounter.Boss.Engaged)
         {

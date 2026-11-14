@@ -390,7 +390,7 @@ public static class WorldLevelBuilder
         Group("Zone 1 Threshold Glade");
         var c = new Vector3(0f, -34f, -150f);
         Zone(zones, "Threshold Glade", new Vector3(0f, -33.9f, -158f),
-            "Space jumps; hold it to hover in Dream. Press Q to shift the world, then strike the glowing bud (left-click) to open the thorns.");
+            "Left Ctrl jumps; hold it to hover in Dream. Press Left Shift to shift the world, then strike the glowing bud (left-click) to open the thorns.");
         Put("IslandLarge", c);
         Put("TreeB", c + new Vector3(-9.5f, 0f, 3f), 40f);
         Put("TreeA", c + new Vector3(10f, 0f, -4f), 200f);
@@ -423,7 +423,7 @@ public static class WorldLevelBuilder
     {
         Group("Zone 2 Hollow Bridge");
         Zone(zones, "The Hollow Bridge", new Vector3(0f, -33.9f, -129f),
-            "Petals only hold in Dream. Thorns only hold in Nightmare. Press Q in the air to land on the other world. Shift dashes across long gaps.");
+            "Petals only hold in Dream. Thorns only hold in Nightmare. Press Left Shift in the air to land on the other world. Space dashes across long gaps.");
         Put("IslandSmall", new Vector3(0f, -34f, -129f));
         Checkpoint(1, new Vector3(0f, -33f, -129f), 3.6f);
         Put("Lantern", new Vector3(-2.2f, -34f, -128f), 60f);
@@ -458,7 +458,7 @@ public static class WorldLevelBuilder
     {
         Group("Zone 3 Weeping Wall");
         Zone(zones, "The Weeping Wall", new Vector3(0f, -30.7f, -62f),
-            "Jump at a wall with glowing handholds to run along it; Space leaps off. Handholds exist in one world: press Q mid-run when they change.");
+            "Jump at a wall with glowing handholds to run along it; Left Ctrl leaps off. Handholds exist in one world: press Left Shift mid-run when they change.");
         Checkpoint(2, new Vector3(0f, -30f, -61f), 6f);
         Put("CliffBig", new Vector3(7.4f, -54f, -22f));
         Put("CliffBig", new Vector3(10.5f, -20f, -26f), new Vector3(0f, 0f, 0f), new Vector3(1f, 1f, 1.1f));

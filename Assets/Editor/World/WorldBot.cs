@@ -162,12 +162,12 @@ public static class WorldBot
                     Face(x, z, p);
                     float d = new Vector2(x - p.x, z - p.z).magnitude;
                     if (d > 0.35f) holds.Add(Key.W); else holds.Remove(Key.W);
-                    if (!didJump) { didJump = true; if (has("hover")) holds.Add(Key.Space); else Tap(Key.Space); }
-                    if (has("hover")) holds.Add(Key.Space);
+                    if (!didJump) { didJump = true; if (has("hover")) holds.Add(Key.LeftCtrl); else Tap(Key.LeftCtrl); }
+                    if (has("hover")) holds.Add(Key.LeftCtrl);
                     if (!pc.Grounded && t > 0.08f) airborne = true;
                     float top = has("early") ? 6f : 2f;
-                    if (airborne && has("swap") && !didSwap && pc.VerticalSpeed < top) { didSwap = true; Tap(Key.Q); }
-                    if (airborne && has("dash") && !didDash && pc.VerticalSpeed < 1f) { didDash = true; Tap(Key.LeftShift); }
+                    if (airborne && has("swap") && !didSwap && pc.VerticalSpeed < top) { didSwap = true; Tap(Key.LeftShift); }
+                    if (airborne && has("dash") && !didDash && pc.VerticalSpeed < 1f) { didDash = true; Tap(Key.Space); }
                     if (airborne && pc.WallRunning) Done("on wall");
                     else if (airborne && pc.VerticalSpeed > 12f) Done("bounced");
                     else if (airborne && pc.Grounded && t > 0.25f) Done("landed " + d.ToString("F1") + " m from target");
@@ -182,8 +182,8 @@ public static class WorldBot
                     Face(x, z, p);
                     float d = new Vector2(x - p.x, z - p.z).magnitude;
                     if (d > 0.35f) holds.Add(Key.W); else holds.Remove(Key.W);
-                    if (has("hover") && pc.VerticalSpeed < 0f) holds.Add(Key.Space); else holds.Remove(Key.Space);
-                    if (has("dash") && !didDash && pc.VerticalSpeed < 1f) { didDash = true; Tap(Key.LeftShift); }
+                    if (has("hover") && pc.VerticalSpeed < 0f) holds.Add(Key.LeftCtrl); else holds.Remove(Key.LeftCtrl);
+                    if (has("dash") && !didDash && pc.VerticalSpeed < 1f) { didDash = true; Tap(Key.Space); }
                     if (pc.Grounded && t > 0.2f) Done("landed " + d.ToString("F1") + " m from target");
                     else if (p.y < from.y - 9f) Fail("fell");
                     else if (t > 6f) Fail("timeout");
@@ -196,8 +196,8 @@ public static class WorldBot
                     {
                         wasOnWall = true;
                         holds.Add(Key.W);
-                        if (q != null && !didSwap && p.z >= F(q)) { didSwap = true; Tap(Key.Q); }
-                        if (j != null && !didJump && p.z >= F(j)) { didJump = true; Tap(Key.Space); }
+                        if (q != null && !didSwap && p.z >= F(q)) { didSwap = true; Tap(Key.LeftShift); }
+                        if (j != null && !didJump && p.z >= F(j)) { didJump = true; Tap(Key.LeftCtrl); }
                     }
                     else if (wasOnWall)
                     {

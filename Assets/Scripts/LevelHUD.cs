@@ -69,6 +69,40 @@ public class LevelHUD : MonoBehaviour
     }
     EclipseVisual bossVisual;
 
+    // Crosshair: a thin circle with a dot at the screen centre. Pale gold in Dream, ember red in Nightmare.
+    // It tightens while aiming, opens with recoil, and a second ring flashes out on a hit.
+    Texture2D crossRing, crossDot;
+    void DrawCrosshair()
+    {
+        if (Event.current.type != EventType.Repaint || combat == null || EclipseEncounter.Finished) return;
+        if (crossRing == null)
+        {
+            crossRing = Radial(128, d => 1f - Mathf.Abs(d - 0.9f) / 0.045f);
+            crossDot = Radial(16, d => 1f - d);
+        }
+        var tpc = ThirdPersonCamera.Instance;
+        float aim = tpc != null ? tpc.AimWeight : 0f;
+        bool night = WorldState.CurrentOrDream == World.Nightmare;
+        float k = Screen.height / 1080f;
+        float size = (Mathf.Lerp(52f, 30f, aim) + combat.Kick * 18f) * k;
+        float alpha = Mathf.Max(aim, combat.Firing ? 0.8f : 0.3f);
+        Color tint = (night ? new Color(1f, 0.4f, 0.2f) : new Color(1f, 0.9f, 0.62f)).linear;
+        Vector2 c = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+        Color keep = GUI.color;
+        GUI.color = new Color(tint.r, tint.g, tint.b, alpha);
+        GUI.DrawTexture(new Rect(c.x - size / 2f, c.y - size / 2f, size, size), crossRing);
+        float dot = 6f * k;
+        GUI.DrawTexture(new Rect(c.x - dot / 2f, c.y - dot / 2f, dot, dot), crossDot);
+        float hit = (Time.unscaledTime - combat.LastHitConfirm) / 0.16f;
+        if (hit < 1f)
+        {
+            float s = size * (0.7f + hit * 0.7f);
+            GUI.color = new Color(1f, 1f, 1f, 1f - hit);
+            GUI.DrawTexture(new Rect(c.x - s / 2f, c.y - s / 2f, s, s), crossRing);
+        }
+        GUI.color = keep;
+    }
+
     // Square texture whose alpha is f(distance from centre, 0 at centre, 1 at the edge midpoints).
     static Texture2D Radial(int size, System.Func<float, float> alpha)
     {
@@ -130,6 +164,7 @@ public class LevelHUD : MonoBehaviour
             big.normal.textColor = Color.white; small.normal.textColor = Color.white;
         }
         DrawVignette();
+        DrawCrosshair();
         string world = WorldState.Instance != null ? WorldState.Instance.Current.ToString().ToUpper() : "";
         var encounter = EclipseEncounter.Instance;
         if (encounter != null)
@@ -195,13 +230,14 @@ public class LevelHUD : MonoBehaviour
             }
         }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        GUI.Label(new Rect(20, Screen.height - 120, Screen.width - 40, 24), "DEBUG  1/2/3 phase   N swap   T teleport   C cycle attacks   K kill   H hitboxes   L camera lock", small);
+        GUI.Label(new Rect(20, Screen.height - 120, Screen.width - 40, 24), "DEBUG  F5/F6/F7 phase   N swap   T teleport   V cycle attacks   K kill   H hitboxes   L camera lock", small);
         var tpc = ThirdPersonCamera.Instance;
         if (tpc != null && tpc.LockWeight > 0f) GUI.Label(new Rect(20, 172, 600, 24), tpc.LockDebug, small);
 #endif
         GUI.Label(new Rect(20, Screen.height - 64, Screen.width - 40, 24), Hint(), small);
-        GUI.Label(new Rect(20, Screen.height - 36, Screen.width - 40, 24), LevelFlow.Instance != null
-            ? "WASD Move   Shift Dash   Space Jump (hold: hover in Dream)   LMB Strike   RMB Charge   Q Shift World   E Weave   G next zone   B boss"
-            : "WASD Move   Shift Dash   Space Jump   LMB Strike   RMB Charge   Q Shift World   E Weave", small);
+        // Key hints come from the current bindings, for the device in use.
+        GUI.Label(new Rect(20, Screen.height - 36, Screen.width - 40, 24),
+            $"Move WASD   Dash {LucidInput.Label(LucidInput.Dash)}   Jump {LucidInput.Label(LucidInput.Jump)}   Fire {LucidInput.Label(LucidInput.Fire)}   Aim / Ward {LucidInput.Label(LucidInput.Aim)}   Swap {LucidInput.Label(LucidInput.SwapStance)}   Shoulder {LucidInput.Label(LucidInput.SwapShoulder)}"
+            + (LevelFlow.Instance != null ? "   G next zone   B boss" : ""), small);
     }
 }

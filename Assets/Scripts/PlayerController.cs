@@ -1,9 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 // Flow movement for the memory: momentum, wide curves, dash chains and a smooth "recall" instead of a hard respawn.
-// WASD moves, Shift dashes, Space jumps, and Q changes worlds.
+// Input comes from LucidInput: WASD moves, Space is the smoke dash, Left Ctrl jumps, Left Shift changes worlds.
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
@@ -17,14 +16,16 @@ public class PlayerController : MonoBehaviour
     public float turnRate = 14f;      // radians per second your direction swings. Lower = wider arcs
     public float gravity = -25f;
 
-    [Header("Dash")]
-    public float dashSpeed = 28f;
-    public float dashTime = 0.16f;
-    public float dashCooldown = 0.3f;
-    public float afterDashSpeed = 15f;
-    public float chainWindow = 0.55f;  // dash again this soon after a dash to chain
-    public float chainBoost = 0.25f;   // extra speed per chain step
-    public int maxChain = 3;
+    // Smoke dash: the body turns to smoke, streams dashDistance metres and reforms. Invulnerable only while smoke.
+    [Header("Smoke dash")]
+    public float dashDistance = 6.5f;
+    public float dashTime = 0.2f;
+    public float dashGrace = 0.1f;        // invulnerable this long after reforming
+    public int dashCharges = 2;
+    public float dashRecharge = 2.5f;     // seconds per charge
+    public float afterDashSpeed = 11f;
+    public float dashShotWindow = 0.6f;   // the first shot this soon after a dash is stronger
+    public float dashShotBonus = 1.25f;
 
     [Header("Recall")]
     public float recallSpeed = 34f;
@@ -41,7 +42,6 @@ public class PlayerController : MonoBehaviour
     public float jumpBuffer = 0.12f;
     public float hoverTime = 0.6f;           // Dream only: hold Space while falling
     public float hoverFallSpeed = 1.2f;
-    public float nightmareDashScale = 1.15f;
 
     [Header("Wall run (only on WallRunSurface)")]
     public float wallRunTime = 1.8f;
@@ -56,7 +56,9 @@ public class PlayerController : MonoBehaviour
     public Vector3 checkpoint;
     public Vector3 Velocity { get { return vel; } }
     public float VerticalSpeed { get { return vy; } }
-    public int Chain { get { return chain; } }
+    public float DashCharges { get { return charges; } }   // 0..dashCharges, fractional while recharging
+    public Vector3 DashDirection { get { return dashDir; } }
+    public event System.Action DashStarted, DashEnded;
     public bool Recalling { get { return recalling; } }
     public bool IsDashing { get { return dashLeft > 0f; } }
     public float LastHitTime { get; private set; }
@@ -73,9 +75,9 @@ public class PlayerController : MonoBehaviour
     Vector3 vel;
     float vy;
     float dashLeft;
-    float lastDash = -99f;
     float lastDashEnd = -99f;
-    int chain;
+    float charges;
+    bool dashShotReady;
     Vector3 dashDir;
 
     readonly List<Crumb> crumbs = new List<Crumb>();
@@ -99,6 +101,24 @@ public class PlayerController : MonoBehaviour
         cc = GetComponent<CharacterController>();
         avatar = GetComponentInChildren<MemoryAvatar>();
         checkpoint = transform.position;
+        charges = dashCharges;
+        if (GetComponent<SmokeDash>() == null) gameObject.AddComponent<SmokeDash>();
+    }
+
+    // 1 normally; dashShotBonus for the first shot fired during or just after a dash (used once).
+    public float TakeDashShotBonus()
+    {
+        if (!dashShotReady || (dashLeft <= 0f && Time.time - lastDashEnd > dashShotWindow)) return 1f;
+        dashShotReady = false;
+        return dashShotBonus;
+    }
+
+    void EndDash()
+    {
+        if (dashLeft <= 0f) return;
+        dashLeft = 0f;
+        lastDashEnd = Time.time;
+        if (DashEnded != null) DashEnded();
     }
 
     // Enemy hit. Dashing gives brief invulnerability; empty health ends the encounter.
@@ -106,7 +126,7 @@ public class PlayerController : MonoBehaviour
     {
         if (EclipseEncounter.Finished) return;
         if (recalling) return;
-        if (dashLeft > 0f || Time.time - lastDashEnd < 0.12f) return;
+        if (dashLeft > 0f || Time.time - lastDashEnd < dashGrace) return;
         if (Time.time < invulnUntil) return;
         invulnUntil = Time.time + 0.35f;
         LastHitTime = Time.time;
@@ -143,7 +163,7 @@ public class PlayerController : MonoBehaviour
         dir.y = 0f;
         if (dir.sqrMagnitude < 0.001f) return;
         vel = dir.normalized * Mathf.Max(speed, vel.magnitude);
-        dashLeft = 0f;
+        EndDash();
         EndWallRun(0.4f);
     }
 
@@ -164,7 +184,7 @@ public class PlayerController : MonoBehaviour
         cc.enabled = false;
         transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
         cc.enabled = was;
-        vel = Vector3.zero; vy = 0f; dashLeft = 0f;
+        vel = Vector3.zero; vy = 0f; EndDash();
         crumbs.Clear();
         EndWallRun(0.1f);
         if (avatar != null) avatar.Scatter(0.25f);
@@ -216,7 +236,7 @@ public class PlayerController : MonoBehaviour
         WallRunning = true;
         airDashUsed = false;
         hoverLeft = hoverTime;
-        dashLeft = 0f;
+        EndDash();
         if (avatar != null) avatar.Sharpen();
     }
 
@@ -228,7 +248,7 @@ public class PlayerController : MonoBehaviour
         recallCost = healthCost;
         recallTargetT = Time.time - recallBackSeconds;
         cc.enabled = false;
-        vel = Vector3.zero; vy = 0f; dashLeft = 0f;
+        vel = Vector3.zero; vy = 0f; EndDash();
         if (avatar != null) avatar.Scatter(0.3f);
     }
 
@@ -266,15 +286,7 @@ public class PlayerController : MonoBehaviour
     {
         if (EclipseEncounter.Finished) return;
         if (recalling) { UpdateRecall(); return; }
-        var kb = Keyboard.current;
-        if (kb == null) return;
-
-        Vector2 input = Vector2.zero;
-        if (kb.wKey.isPressed) input.y += 1;
-        if (kb.sKey.isPressed) input.y -= 1;
-        if (kb.dKey.isPressed) input.x += 1;
-        if (kb.aKey.isPressed) input.x -= 1;
-        input = Vector2.ClampMagnitude(input, 1f);
+        Vector2 input = LucidInput.MoveVector;
 
         Vector3 fwd = cameraTransform != null ? Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up).normalized : Vector3.forward;
         // Boss lock-on: W/S move toward and away from the boss, A/D strafe around it.
@@ -290,21 +302,23 @@ public class PlayerController : MonoBehaviour
         bool grounded = cc.isGrounded;
         float dt = Time.deltaTime;
         if (grounded) { lastGrounded = Time.time; airDashUsed = false; hoverLeft = hoverTime; lastWall = null; }
-        if (kb.spaceKey.wasPressedThisFrame) lastJumpPressed = Time.time;
+        if (LucidInput.Jump.WasPressedThisFrame()) lastJumpPressed = Time.time;
         bool jumpQueued = Time.time - lastJumpPressed <= jumpBuffer;
         if (arena) EndWallRun(0f);
 
-        // Dash. Outside the boss arena there is one air dash per jump; walls and blossoms give it back.
-        bool dashPressed = kb.leftShiftKey.wasPressedThisFrame || kb.rightShiftKey.wasPressedThisFrame;
-        if (dashPressed && dashLeft <= 0f && Time.time - lastDash > dashCooldown && (arena || grounded || WallRunning || !airDashUsed))
+        // Smoke dash: in the move direction, or camera forward with no input. Charges refill one at a time.
+        // Outside the boss arena there is one air dash per jump; walls and blossoms give it back.
+        charges = Mathf.Min(dashCharges, charges + dt / Mathf.Max(0.05f, dashRecharge));
+        if (LucidInput.Pressed(LucidInput.Dash) && dashLeft <= 0f && charges >= 1f && (arena || grounded || WallRunning || !airDashUsed))
         {
+            LucidInput.Consume(LucidInput.Dash);
+            charges -= 1f;
             if (!arena && !grounded) airDashUsed = true;
             EndWallRun(0.35f);
-            dashDir = hasWish ? wish.normalized : (vel.sqrMagnitude > 0.5f ? vel.normalized : transform.forward);
-            chain = (Time.time - lastDashEnd < chainWindow) ? Mathf.Min(chain + 1, maxChain) : 0;
+            dashDir = hasWish ? wish.normalized : fwd;
             dashLeft = dashTime;
-            lastDash = Time.time;
-            if (avatar != null) avatar.Scatter(dashTime + 0.12f);
+            dashShotReady = true;
+            if (DashStarted != null) DashStarted();
         }
 
         // Wall run: airborne next to a marked wall, moving along it.
@@ -350,14 +364,13 @@ public class PlayerController : MonoBehaviour
         if (WallRunning) { }
         else if (dashLeft > 0f)
         {
-            float boost = (1f + chain * chainBoost) * (nightmare && !arena ? nightmareDashScale : 1f);
-            vel = dashDir * dashSpeed * boost;
-            dashLeft -= Time.deltaTime;
-            if (dashLeft <= 0f)
+            vel = dashDir * (dashDistance / Mathf.Max(0.05f, dashTime));
+            if (dashLeft - dt <= 0f)
             {
-                lastDashEnd = Time.time;
-                vel = dashDir * Mathf.Max(afterDashSpeed * boost, maxSpeed);
+                EndDash();
+                vel = dashDir * Mathf.Max(afterDashSpeed, maxSpeed);
             }
+            else dashLeft -= dt;
         }
         else
         {
@@ -383,7 +396,7 @@ public class PlayerController : MonoBehaviour
         {
             bool airDash = dashLeft > 0f && !arena && !grounded;
             if (airDash) vy = 0f; // a flat dash, so it crosses gaps
-            else if (!arena && !nightmare && !grounded && vy < 0f && hoverLeft > 0f && kb.spaceKey.isPressed)
+            else if (!arena && !nightmare && !grounded && vy < 0f && hoverLeft > 0f && LucidInput.Jump.IsPressed())
             {
                 // Dream: hold Space to drift down slowly for a moment.
                 Hovering = true;
@@ -414,7 +427,8 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        Vector3 flat = ThirdPersonCamera.LockedOn && toBoss.sqrMagnitude > 0.01f ? toBoss : (WallRunning ? wallTangent : vel); flat.y = 0f;
+        // Face the boss when locked on, the aim point when aiming, otherwise the way we move.
+        Vector3 flat = ThirdPersonCamera.LockedOn && toBoss.sqrMagnitude > 0.01f ? toBoss : ThirdPersonCamera.Aiming && !WallRunning ? fwd : (WallRunning ? wallTangent : vel); flat.y = 0f;
         if (flat.sqrMagnitude > 0.5f)
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(flat), 10f * Time.deltaTime);
 
@@ -426,7 +440,6 @@ public class PlayerController : MonoBehaviour
             while (crumbs.Count > 0 && Time.time - crumbs[0].t > crumbSeconds) crumbs.RemoveAt(0);
         }
 
-        bool swapPressed = kb.qKey.wasPressedThisFrame;
-        if (swapPressed && WorldState.Instance != null) WorldState.Instance.Swap();
+        if (LucidInput.SwapStance.WasPressedThisFrame() && WorldState.Instance != null) WorldState.Instance.Swap();
     }
 }

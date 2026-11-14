@@ -113,6 +113,9 @@ public class LevelHUD : MonoBehaviour
 
     string Hint()
     {
+        // On the way to the boss, the level gives the hint for the zone the player is in.
+        var flow = LevelFlow.Instance;
+        if (flow != null && (EclipseEncounter.Instance == null || !EclipseEncounter.Instance.BossFightStarted)) return flow.Hint;
         World w = WorldState.Instance != null ? WorldState.Instance.Current : World.Dream;
         return w == World.Nightmare ? "The Sleeper is exposed. Dodge ember orbs."
                                     : "Hold right-click to capture seeds. Chain absorbs for Resonance; at x5 press E for a Lucid Pulse.";
@@ -197,6 +200,8 @@ public class LevelHUD : MonoBehaviour
         if (tpc != null && tpc.LockWeight > 0f) GUI.Label(new Rect(20, 172, 600, 24), tpc.LockDebug, small);
 #endif
         GUI.Label(new Rect(20, Screen.height - 64, Screen.width - 40, 24), Hint(), small);
-        GUI.Label(new Rect(20, Screen.height - 36, Screen.width - 40, 24), "WASD Move   Shift Dash   Space Jump   LMB Strike   RMB Charge   Q Shift World   E Weave", small);
+        GUI.Label(new Rect(20, Screen.height - 36, Screen.width - 40, 24), LevelFlow.Instance != null
+            ? "WASD Move   Shift Dash   Space Jump (hold: hover in Dream)   LMB Strike   RMB Charge   Q Shift World   E Weave   G next zone   B boss"
+            : "WASD Move   Shift Dash   Space Jump   LMB Strike   RMB Charge   Q Shift World   E Weave", small);
     }
 }

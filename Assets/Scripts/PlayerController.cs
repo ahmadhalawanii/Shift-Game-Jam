@@ -31,12 +31,40 @@ public class PlayerController : MonoBehaviour
     public float crumbSeconds = 6f;
     public float recallBackSeconds = 1.2f;
 
+    // Traversal zones are fully 3D. The boss arena stays plane-locked: there the jump is the short hop,
+    // and hover, wall-run and the air-dash limit are off.
+    [Header("Jump and air (outside the boss arena)")]
+    public float jumpSpeed = 7f;             // the hop used in the boss arena
+    public float jumpSpeedDream = 10.5f;     // floaty: about 2.2 m high
+    public float jumpSpeedNightmare = 9.2f;  // sharper: about 1.7 m high
+    public float coyoteTime = 0.12f;
+    public float jumpBuffer = 0.12f;
+    public float hoverTime = 0.6f;           // Dream only: hold Space while falling
+    public float hoverFallSpeed = 1.2f;
+    public float nightmareDashScale = 1.15f;
+
+    [Header("Wall run (only on WallRunSurface)")]
+    public float wallRunTime = 1.8f;
+    public float wallRunSpeed = 11f;
+    public float wallRunRise = 2.2f;         // upward speed at the start of the run
+    public float wallRunSink = 1.6f;         // downward speed at the end
+    public float wallJumpUp = 9.5f;
+    public float wallJumpOut = 7f;
+    public float wallReach = 1.25f;          // how close to the wall a run can start
+    public float wallStick = 0.62f;          // distance kept from the wall while running
+
     public Vector3 checkpoint;
     public Vector3 Velocity { get { return vel; } }
+    public float VerticalSpeed { get { return vy; } }
     public int Chain { get { return chain; } }
     public bool Recalling { get { return recalling; } }
     public bool IsDashing { get { return dashLeft > 0f; } }
     public float LastHitTime { get; private set; }
+    public bool Grounded { get { return cc != null && cc.enabled && cc.isGrounded; } }
+    public bool WallRunning { get; private set; }
+    public bool Hovering { get; private set; }
+    // +1 when the wall is on the player's right, -1 on the left, 0 when not wall-running.
+    public float WallSide { get; private set; }
 
     struct Crumb { public Vector3 pos; public float t; }
 
@@ -56,6 +84,15 @@ public class PlayerController : MonoBehaviour
     float recallCost;
     float recallTargetT;
     float invulnUntil;
+
+    float lastGrounded = -99f;
+    float lastJumpPressed = -99f;
+    bool airDashUsed;
+    float hoverLeft;
+    float wallRunLeft;
+    float wallCooldownUntil;
+    Vector3 wallNormal, wallTangent;
+    WallRunSurface wall, lastWall;
 
     void Awake()
     {
@@ -79,6 +116,8 @@ public class PlayerController : MonoBehaviour
             avatar.Scatter(0.2f);
             if (avatar.health <= 0f && EclipseEncounter.Instance != null)
             {
+                // On the way to the boss, fading only costs the walk back from the last checkpoint.
+                if (LevelFlow.Instance != null && !EclipseEncounter.Instance.BossFightStarted) { LevelFlow.Instance.Respawn(); return; }
                 avatar.health = 0f;
                 EclipseEncounter.Instance.End(false);
                 return;
@@ -105,6 +144,83 @@ public class PlayerController : MonoBehaviour
         if (dir.sqrMagnitude < 0.001f) return;
         vel = dir.normalized * Mathf.Max(speed, vel.magnitude);
         dashLeft = 0f;
+        EndWallRun(0.4f);
+    }
+
+    // A bounce blossom throws the player upward and gives the air dash and hover back.
+    public void Launch(float upSpeed)
+    {
+        vy = upSpeed;
+        airDashUsed = false;
+        hoverLeft = hoverTime;
+        lastGrounded = -99f;
+        EndWallRun(0.1f);
+    }
+
+    // Instant move (checkpoints, zone jumps). Clears momentum and the recall trail.
+    public void Teleport(Vector3 position, float yaw)
+    {
+        bool was = cc.enabled;
+        cc.enabled = false;
+        transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
+        cc.enabled = was;
+        vel = Vector3.zero; vy = 0f; dashLeft = 0f;
+        crumbs.Clear();
+        EndWallRun(0.1f);
+        if (avatar != null) avatar.Scatter(0.25f);
+    }
+
+    void EndWallRun(float cooldown)
+    {
+        if (!WallRunning) return;
+        WallRunning = false;
+        WallSide = 0f;
+        lastWall = wall;
+        wall = null;
+        wallCooldownUntil = Time.time + cooldown;
+    }
+
+    // Nearest marked wall within reach of the chest. Returns false when there is none.
+    bool FindWall(WallRunSurface only, float reach, out WallRunSurface found, out Vector3 normal, out float distance)
+    {
+        found = null; normal = Vector3.zero; distance = float.MaxValue;
+        Vector3 chest = transform.position + Vector3.up;
+        var all = WallRunSurface.All;
+        for (int i = 0; i < all.Count; i++)
+        {
+            var s = all[i];
+            if (s == null || (only != null && s != only) || !s.UsableAt(chest)) continue;
+            Vector3 d = chest - s.Closest(chest);
+            if (Mathf.Abs(d.y) > 0.9f) continue; // above or below the panel
+            d.y = 0f;
+            float m = d.magnitude;
+            if (m < 0.02f || m > reach || m >= distance) continue;
+            found = s; normal = d / m; distance = m;
+        }
+        return found != null;
+    }
+
+    void TryStartWallRun(Vector3 wish, bool hasWish)
+    {
+        WallRunSurface s; Vector3 n; float d;
+        if (!FindWall(null, wallReach, out s, out n, out d)) return;
+        if (s == lastWall && Time.time < wallCooldownUntil) return;
+        Vector3 t = Vector3.Cross(Vector3.up, n);
+        Vector3 flat = vel; flat.y = 0f;
+        float along = Vector3.Dot(flat, t);
+        if (Mathf.Abs(along) < 3f && hasWish) along = Vector3.Dot(wish, t) * maxSpeed;
+        if (Mathf.Abs(along) < 3f) return;
+        // Not while moving away from the wall.
+        if (Vector3.Dot(flat, n) > 4f) return;
+        wall = s;
+        wallNormal = n;
+        wallTangent = t * Mathf.Sign(along);
+        wallRunLeft = wallRunTime;
+        WallRunning = true;
+        airDashUsed = false;
+        hoverLeft = hoverTime;
+        dashLeft = 0f;
+        if (avatar != null) avatar.Sharpen();
     }
 
     // Fell or got hurt: flow back along the path you just walked.
@@ -171,9 +287,22 @@ public class PlayerController : MonoBehaviour
         Vector3 wish = fwd * input.y + right * input.x;
         bool hasWish = wish.sqrMagnitude > 0.01f;
 
-        // Dash.
-        if ((kb.leftShiftKey.wasPressedThisFrame || kb.rightShiftKey.wasPressedThisFrame) && dashLeft <= 0f && Time.time - lastDash > dashCooldown)
+        var encounter = EclipseEncounter.Instance;
+        bool arena = encounter != null && encounter.BossFightStarted;
+        bool nightmare = WorldState.CurrentOrDream == World.Nightmare;
+        bool grounded = cc.isGrounded;
+        float dt = Time.deltaTime;
+        if (grounded) { lastGrounded = Time.time; airDashUsed = false; hoverLeft = hoverTime; lastWall = null; }
+        if (kb.spaceKey.wasPressedThisFrame) lastJumpPressed = Time.time;
+        bool jumpQueued = Time.time - lastJumpPressed <= jumpBuffer;
+        if (arena) EndWallRun(0f);
+
+        // Dash. Outside the boss arena there is one air dash per jump; walls and blossoms give it back.
+        bool dashPressed = kb.leftShiftKey.wasPressedThisFrame || kb.rightShiftKey.wasPressedThisFrame;
+        if (dashPressed && dashLeft <= 0f && Time.time - lastDash > dashCooldown && (arena || grounded || WallRunning || !airDashUsed))
         {
+            if (!arena && !grounded) airDashUsed = true;
+            EndWallRun(0.35f);
             dashDir = hasWish ? wish.normalized : (vel.sqrMagnitude > 0.5f ? vel.normalized : transform.forward);
             chain = (Time.time - lastDashEnd < chainWindow) ? Mathf.Min(chain + 1, maxChain) : 0;
             dashLeft = dashTime;
@@ -181,9 +310,43 @@ public class PlayerController : MonoBehaviour
             if (avatar != null) avatar.Scatter(dashTime + 0.12f);
         }
 
-        if (dashLeft > 0f)
+        // Wall run: airborne next to a marked wall, moving along it.
+        if (!arena && !WallRunning && !grounded && Time.time - lastGrounded > 0.1f) TryStartWallRun(wish, hasWish);
+        if (WallRunning)
         {
-            float boost = 1f + chain * chainBoost;
+            WallRunSurface s; Vector3 n; float d;
+            bool held = FindWall(wall, wallReach + 0.7f, out s, out n, out d);
+            wallRunLeft -= dt;
+            if (!held || wallRunLeft <= 0f || (grounded && wallRunLeft < wallRunTime - 0.2f))
+            {
+                // Running off the end of a wall leaves a short window to jump.
+                if (!held) lastGrounded = Time.time;
+                EndWallRun(0.45f);
+            }
+            else if (jumpQueued)
+            {
+                lastJumpPressed = -99f;
+                lastGrounded = -99f;
+                vy = wallJumpUp;
+                vel = wallTangent * Mathf.Max(wallRunSpeed, maxSpeed) + n * wallJumpOut;
+                EndWallRun(0.3f);
+                if (avatar != null) avatar.Scatter(0.15f);
+            }
+            else
+            {
+                wallNormal = n;
+                Vector3 t = Vector3.Cross(Vector3.up, n);
+                wallTangent = Vector3.Dot(t, wallTangent) >= 0f ? t : -t;
+                vy = Mathf.Lerp(wallRunRise, -wallRunSink, 1f - wallRunLeft / wallRunTime);
+                vel = wallTangent * wallRunSpeed - n * ((d - wallStick) * 10f);
+                WallSide = Vector3.Dot(Vector3.Cross(Vector3.up, wallTangent), -n) > 0f ? 1f : -1f;
+            }
+        }
+
+        if (WallRunning) { }
+        else if (dashLeft > 0f)
+        {
+            float boost = (1f + chain * chainBoost) * (nightmare && !arena ? nightmareDashScale : 1f);
             vel = dashDir * dashSpeed * boost;
             dashLeft -= Time.deltaTime;
             if (dashLeft <= 0f)
@@ -202,14 +365,33 @@ public class PlayerController : MonoBehaviour
             vel = Vector3.MoveTowards(vel, target, rate * Time.deltaTime);
         }
 
-        if (cc.isGrounded && vy < 0f) vy = -2f;
-        if (cc.isGrounded && kb.spaceKey.wasPressedThisFrame) vy = 7f;
-        vy += gravity * Time.deltaTime;
+        if (grounded && vy < 0f) vy = -2f;
+        // Jump, with a short buffer before landing and coyote time after leaving a ledge.
+        bool canJump = grounded || (!arena && vy <= 0f && Time.time - lastGrounded <= coyoteTime);
+        if (jumpQueued && canJump && !WallRunning)
+        {
+            vy = arena ? jumpSpeed : (nightmare ? jumpSpeedNightmare : jumpSpeedDream);
+            lastJumpPressed = -99f;
+            lastGrounded = -99f;
+        }
+        Hovering = false;
+        if (!WallRunning)
+        {
+            bool airDash = dashLeft > 0f && !arena && !grounded;
+            if (airDash) vy = 0f; // a flat dash, so it crosses gaps
+            else if (!arena && !nightmare && !grounded && vy < 0f && hoverLeft > 0f && kb.spaceKey.isPressed)
+            {
+                // Dream: hold Space to drift down slowly for a moment.
+                Hovering = true;
+                hoverLeft -= dt;
+                vy = Mathf.MoveTowards(vy, -hoverFallSpeed, 60f * dt);
+            }
+            else vy += gravity * dt;
+        }
         Vector3 move = vel;
         move.y = vy;
         cc.Move(move * Time.deltaTime);
-        var encounter = EclipseEncounter.Instance;
-        if (encounter != null && encounter.BossFightStarted)
+        if (arena)
         {
             Vector3 offset = transform.position - EclipseEncounter.ArenaCenter;
             offset.y = 0f;
@@ -228,7 +410,7 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        Vector3 flat = ThirdPersonCamera.LockedOn && toBoss.sqrMagnitude > 0.01f ? toBoss : vel; flat.y = 0f;
+        Vector3 flat = ThirdPersonCamera.LockedOn && toBoss.sqrMagnitude > 0.01f ? toBoss : (WallRunning ? wallTangent : vel); flat.y = 0f;
         if (flat.sqrMagnitude > 0.5f)
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(flat), 10f * Time.deltaTime);
 

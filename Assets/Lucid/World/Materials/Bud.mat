@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Bud
+  m_Shader: {fileID: 4800000, guid: 4565d048d3644e64fa4e75ee7c2b57e2, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _Corruption: 0
+    - _EmissionMask: 1
+    - _EmissionVeins: 0
+    - _ExistIn: 0
+    - _FogInfluence: 1
+    - _FoldDream: 0.75
+    - _FoldHinge: 0.25
+    - _FoldHingeY: 0
+    - _FoldNight: 0.1
+    - _GrowDream: 1
+    - _GrowNight: 1
+    - _GrowWidth: 0
+    - _LeanToPlayer: 0
+    - _MaskPower: 1
+    - _MorphSeconds: 0.5
+    - _PlayerBend: 0
+    - _PlayerGlow: 0
+    - _Pulse: 0.5
+    - _PulseSpeed: 1.5
+    - _RampMid: 0.45
+    - _RampSoft: 0.22
+    - _RimPower: 2.5
+    - _SeamPush: 0.1
+    - _Translucency: 0.6
+    - _VariationAmount: 0.5
+    - _VariationScale: 0.6
+    - _Wind: 0.15
+    - _WindHeight: 1
+    m_Colors:
+    - _CorruptionColor: {r: 0.754902, g: 0.38725492, b: 1.0980393, a: 1.25}
+    - _DreamAccent: {r: 0.76862746, g: 0.3529412, b: 0.64705884, a: 1}
+    - _DreamColor: {r: 0.47843137, g: 0.3529412, b: 0.65882355, a: 1}
+    - _DreamEmission: {r: 0, g: 0, b: 0, a: 1}
+    - _DreamRim: {r: 0.45490196, g: 0.27450982, b: 0.39215687, a: 0.5}
+    - _DreamShade: {r: 0.2, g: 0.1254902, b: 0.37254903, a: 1}
+    - _NightAccent: {r: 0.41568628, g: 0.16470589, b: 0.22745098, a: 1}
+    - _NightColor: {r: 0.22745098, g: 0.12156863, b: 0.2901961, a: 1}
+    - _NightEmission: {r: 2.6, g: 0.91764706, b: 0.55058825, a: 2.6}
+    - _NightRim: {r: 0.1992157, g: 0.2854902, b: 0.34039217, a: 0.4}
+    - _NightShade: {r: 0.05882353, g: 0.02745098, b: 0.08627451, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

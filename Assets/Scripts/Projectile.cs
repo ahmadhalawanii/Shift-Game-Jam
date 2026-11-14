@@ -10,6 +10,25 @@ public class Projectile : MonoBehaviour
 
     Vector3 dir;
     Enemy target;
+    Color impactColor = Color.cyan;
+    bool heavy;
+
+    public void Configure(float amount, Color tint, bool isHeavy)
+    {
+        damage = amount;
+        impactColor = tint;
+        heavy = isHeavy;
+        if (heavy) transform.localScale *= 2.8f;
+        foreach (var renderer in GetComponentsInChildren<Renderer>())
+        {
+            var properties = new MaterialPropertyBlock();
+            renderer.GetPropertyBlock(properties);
+            properties.SetColor("_Color", tint);
+            properties.SetColor("_BaseColor", tint);
+            properties.SetColor("_EmissionColor", tint * 1.5f);
+            renderer.SetPropertyBlock(properties);
+        }
+    }
 
     public void Init(Vector3 direction, Enemy homingTarget)
     {
@@ -41,7 +60,8 @@ public class Projectile : MonoBehaviour
             if ((p - e.transform.position).sqrMagnitude < (e.radius + 0.15f) * (e.radius + 0.15f))
             {
                 e.TakeDamage(damage, p);
-                ThirdPersonCamera.Shake(0.03f);
+                Fx.Burst(p, impactColor, heavy ? 24 : 5);
+                ThirdPersonCamera.Shake(heavy ? 0.16f : 0.03f);
                 Destroy(gameObject);
                 return;
             }

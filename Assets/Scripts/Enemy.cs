@@ -12,6 +12,8 @@ public abstract class Enemy : MonoBehaviour
 
     protected Transform player;
 
+    public virtual void TakeBurstDamage(float damage, Vector3 hitPoint) { TakeDamage(damage, hitPoint); }
+
     protected virtual void OnEnable() { All.Add(this); }
     protected virtual void OnDisable() { All.Remove(this); }
 

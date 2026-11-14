@@ -49,6 +49,7 @@ public class WorldState : MonoBehaviour
     {
         if (w == Current) return;
         Current = w;
+        LucidAudio.Play(LucidAudio.Cue.Shift);
         target = w == World.Nightmare ? 1f : 0f;
         startMix = Mix;
         transitionElapsed = 0f;

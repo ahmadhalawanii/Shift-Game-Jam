@@ -121319,11 +121319,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   fireRate: 14
+  threadDamage: 2
   spreadDegrees: 1.8
   assistRange: 45
   assistConeDegrees: 30
   shieldRadius: 2.4
   maxPower: 10
+  burstDamage: 70
+  burstChargeTime: 0.9
+  burstCooldown: 0.55
 --- !u!4 &1781818211
 Transform:
   m_ObjectHideFlags: 0

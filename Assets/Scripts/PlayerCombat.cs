@@ -1,27 +1,32 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Hold left mouse. In Nightmare it fires a stream of shards (aim assist pulls them toward the nearest enemy).
-// In Dream it raises a shield that absorbs enemy orbs and charges Power.
 public class PlayerCombat : MonoBehaviour
 {
-    [Header("Nightmare shooting")]
+    [Header("Thread Strike")]
     public float fireRate = 14f;
+    [Min(0.1f)] public float threadDamage = 2f;
     public float spreadDegrees = 1.8f;
     public float assistRange = 45f;
     public float assistConeDegrees = 30f;
 
-    [Header("Dream shield")]
+    [Header("Dream seed capture")]
     public float shieldRadius = 2.4f;
     public float maxPower = 10f;
-    public float burstRadius = 42f;
-    public float burstDamage = 45f;
+
+    [Header("Dreamcatcher Burst")]
+    public float burstDamage = 70f;
+    [Min(0.1f)] public float burstChargeTime = 0.9f;
+    [Min(0f)] public float burstCooldown = 0.55f;
 
     public float Power { get; private set; }
     public bool ShieldUp { get; private set; }
     public bool Firing { get { return Time.time - lastShot < 0.18f; } }
+    public bool HeavyCast { get; private set; }
     public float Kick { get; private set; }
     public float ShieldRadius { get { return shieldRadius; } }
+    public bool IsChargingBurst { get; private set; }
+    public float BurstCharge01 { get { return IsChargingBurst ? Mathf.Clamp01(chargeAge / Mathf.Max(0.05f, burstChargeTime)) : 0f; } }
 
     PlayerController pc;
     MemoryAvatar avatar;
@@ -30,6 +35,9 @@ public class PlayerCombat : MonoBehaviour
     float nextShot;
     float lastShot = -99f;
     float shieldScale;
+    float chargeAge;
+    float nextBurst;
+    BurstVisual chargingVisual;
 
     void Start()
     {
@@ -47,29 +55,47 @@ public class PlayerCombat : MonoBehaviour
 
     void Update()
     {
-        if (EclipseEncounter.Finished) { ShieldUp = false; return; }
-        if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame) TryBurst();
-        var mouse = Mouse.current;
-        bool held = mouse != null && mouse.leftButton.isPressed && !(pc != null && pc.Recalling);
+        if (EclipseEncounter.Finished)
+        {
+            CancelBurst();
+            HideShield();
+            return;
+        }
         World w = WorldState.Instance != null ? WorldState.Instance.Current : World.Dream;
-
-        if (w == World.Nightmare)
+        var mouse = Mouse.current;
+        if (mouse == null || (pc != null && pc.Recalling) || (avatar != null && avatar.memory <= 0f))
         {
-            ShieldUp = false;
-            if (held && Time.time >= nextShot) Fire();
-        }
-        else
-        {
-            ShieldUp = held;
+            CancelBurst();
+            HideShield();
+            return;
         }
 
+        if (mouse.rightButton.wasPressedThisFrame && Time.time >= nextBurst)
+        {
+            chargeAge = 0f;
+            IsChargingBurst = true;
+            LucidAudio.Play(LucidAudio.Cue.Charge);
+            chargingVisual = BurstVisual.Begin(transform, 4f, 0f);
+        }
+
+        if (IsChargingBurst)
+        {
+            chargeAge += Time.deltaTime;
+            if (chargingVisual != null) chargingVisual.SetCharge(BurstCharge01);
+            if (!mouse.rightButton.isPressed) ReleaseBurst();
+        }
+
+        ShieldUp = w == World.Dream && IsChargingBurst && mouse.rightButton.isPressed;
         Kick = Mathf.MoveTowards(Kick, 0f, 9f * Time.deltaTime);
-        if (held) FaceAim();
+        bool striking = mouse.leftButton.isPressed && !IsChargingBurst;
+        if (striking || IsChargingBurst) FaceAim();
+        if (striking && Time.time >= nextShot) Fire(false);
 
         if (shield != null)
         {
             shieldScale = Mathf.MoveTowards(shieldScale, ShieldUp ? shieldRadius * 2f : 0f, 30f * Time.deltaTime);
             shield.transform.localScale = Vector3.one * shieldScale;
+            shield.SetActive(shieldScale > 0.001f);
         }
     }
 
@@ -102,13 +128,15 @@ public class PlayerCombat : MonoBehaviour
         return best;
     }
 
-    void Fire()
+    void Fire(bool heavy, float damage = 0f)
     {
-        nextShot = Time.time + 1f / fireRate;
+        nextShot = Time.time + 1f / Mathf.Max(1f, fireRate);
         lastShot = Time.time;
         Kick = 1f;
+        HeavyCast = heavy;
         Vector3 aim = FlatAim();
-        Vector3 origin = transform.position + Vector3.up * 1.2f + aim * 0.7f;
+        Vector3 right = Vector3.Cross(Vector3.up, aim);
+        Vector3 origin = transform.position + Vector3.up * 1.2f + aim * 0.7f + right * (heavy ? 0.48f : -0.48f);
         Enemy target = FindTarget(aim, origin);
         Vector3 dir = aim;
         if (target != null)
@@ -116,36 +144,65 @@ public class PlayerCombat : MonoBehaviour
             Vector3 to = (target.transform.position - origin).normalized;
             dir = Vector3.Slerp(aim, to, 0.85f);
         }
-        dir = Quaternion.Euler(0f, Random.Range(-spreadDegrees, spreadDegrees), 0f) * dir;
+        if (!heavy) dir = Quaternion.Euler(0f, Random.Range(-spreadDegrees, spreadDegrees), 0f) * dir;
 
         var shard = CombatAssets.Spawn("Shard", origin, Quaternion.LookRotation(dir));
-        if (shard != null) shard.GetComponent<Projectile>().Init(dir, target);
-
-        Fx.Burst(origin, new Color(1f, 0.75f, 0.3f), 4);
-        ThirdPersonCamera.Shake(0.012f);
+        Color tint = heavy ? new Color(0.85f, 0.2f, 1f) : new Color(0.12f, 0.9f, 1f);
+        if (shard != null && shard.TryGetComponent<Projectile>(out var projectile))
+        {
+            projectile.Init(dir, target);
+            projectile.Configure(heavy ? damage : threadDamage, tint, heavy);
+        }
+        Fx.Burst(origin, tint, heavy ? 22 : 4);
+        LucidAudio.Play(heavy ? LucidAudio.Cue.Burst : LucidAudio.Cue.Thread);
+        ThirdPersonCamera.Shake(heavy ? 0.13f : 0.012f);
     }
 
     public void AddPower(float amount) { Power = Mathf.Clamp(Power + amount, 0f, maxPower); }
 
-    public bool TryBurst()
+    public bool TrySpendPower(float fraction)
     {
-        if (EclipseEncounter.Finished || (pc != null && pc.Recalling)) return false;
-        if (WorldState.Instance == null || WorldState.Instance.Current != World.Nightmare || Power < maxPower)
-        {
-            if (EclipseEncounter.Instance != null) EclipseEncounter.Instance.Tell("Burst needs full Power and Nightmare.");
-            return false;
-        }
+        if (Power < maxPower * fraction) return false;
         Power = 0f;
-        Vector3 center = transform.position;
-        EnemyBullet.Clear(center, burstRadius);
-        foreach (var enemy in Enemy.All.ToArray())
-            if (enemy != null && (enemy.transform.position - center).sqrMagnitude <= burstRadius * burstRadius)
-                enemy.TakeDamage(burstDamage, enemy.transform.position);
-        CombatPulse.Spawn(center + Vector3.up * 0.25f, burstRadius, new Color(0.7f, 0.3f, 1.5f));
-        Fx.Burst(center + Vector3.up, new Color(0.65f, 0.3f, 1f), 45);
-        ThirdPersonCamera.Shake(0.3f);
-        if (EclipseEncounter.Instance != null) EclipseEncounter.Instance.Tell("MEMORY BURST");
         return true;
+    }
+
+    void ReleaseBurst()
+    {
+        float charge = BurstCharge01;
+        float power = maxPower > 0f ? Power / maxPower : 0f;
+        CancelBurst();
+        if (charge < 0.08f) return;
+        float damage = burstDamage * Mathf.Lerp(0.16f, 0.65f, charge) * (1f + power * 0.65f);
+        if (WorldState.Instance != null && WorldState.Instance.Current == World.Nightmare) Power = 0f;
+        nextBurst = Time.time + burstCooldown;
+        Fire(true, damage);
+    }
+
+    void CancelBurst()
+    {
+        IsChargingBurst = false;
+        ShieldUp = false;
+        chargeAge = 0f;
+        if (chargingVisual != null) chargingVisual.Cancel();
+        chargingVisual = null;
+    }
+
+    void HideShield()
+    {
+        ShieldUp = false;
+        shieldScale = 0f;
+        if (shield != null)
+        {
+            shield.transform.localScale = Vector3.zero;
+            shield.SetActive(false);
+        }
+    }
+
+    void OnDisable()
+    {
+        CancelBurst();
+        HideShield();
     }
 
     public void OnAbsorb(Vector3 where)
@@ -156,6 +213,8 @@ public class PlayerCombat : MonoBehaviour
             avatar.memory = Mathf.Min(1f, avatar.memory + 0.012f);
             avatar.Sharpen();
         }
+        LucidAudio.Play(LucidAudio.Cue.Capture);
+        Fx.Burst(where, new Color(0.15f, 1f, 0.85f), 10);
         ThirdPersonCamera.Shake(0.02f);
     }
 }

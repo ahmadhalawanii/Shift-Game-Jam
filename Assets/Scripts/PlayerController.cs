@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 // Flow movement for the memory: momentum, wide curves, dash chains and a smooth "recall" instead of a hard respawn.
-// WASD move, Space dash (chain dashes for speed), Shift / right mouse swap world.
+// WASD moves, Shift dashes, Space jumps, and Q changes worlds.
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
@@ -144,7 +144,6 @@ public class PlayerController : MonoBehaviour
         if (EclipseEncounter.Finished) return;
         if (recalling) { UpdateRecall(); return; }
         var kb = Keyboard.current;
-        var mouse = Mouse.current;
         if (kb == null) return;
 
         Vector2 input = Vector2.zero;
@@ -160,7 +159,7 @@ public class PlayerController : MonoBehaviour
         bool hasWish = wish.sqrMagnitude > 0.01f;
 
         // Dash.
-        if (kb.spaceKey.wasPressedThisFrame && dashLeft <= 0f && Time.time - lastDash > dashCooldown)
+        if ((kb.leftShiftKey.wasPressedThisFrame || kb.rightShiftKey.wasPressedThisFrame) && dashLeft <= 0f && Time.time - lastDash > dashCooldown)
         {
             dashDir = hasWish ? wish.normalized : (vel.sqrMagnitude > 0.5f ? vel.normalized : transform.forward);
             chain = (Time.time - lastDashEnd < chainWindow) ? Mathf.Min(chain + 1, maxChain) : 0;
@@ -191,10 +190,30 @@ public class PlayerController : MonoBehaviour
         }
 
         if (cc.isGrounded && vy < 0f) vy = -2f;
+        if (cc.isGrounded && kb.spaceKey.wasPressedThisFrame) vy = 7f;
         vy += gravity * Time.deltaTime;
         Vector3 move = vel;
         move.y = vy;
         cc.Move(move * Time.deltaTime);
+        var encounter = EclipseEncounter.Instance;
+        if (encounter != null && encounter.BossFightStarted)
+        {
+            Vector3 offset = transform.position - EclipseEncounter.ArenaCenter;
+            offset.y = 0f;
+            float limit = (encounter.Boss != null && encounter.Boss.Phase == 3 ? EclipseArena.FusedRadius : EclipseEncounter.ArenaRadius) - cc.radius;
+            if (offset.sqrMagnitude > limit * limit)
+            {
+                Vector3 correction = offset.normalized * limit - offset;
+                cc.Move(correction);
+                vel = Vector3.ProjectOnPlane(vel, offset.normalized);
+            }
+            else if (offset.sqrMagnitude < EclipseArena.CoreRadius * EclipseArena.CoreRadius)
+            {
+                Vector3 outward = offset.sqrMagnitude > 0.001f ? offset.normalized : Vector3.back;
+                cc.Move(outward * EclipseArena.CoreRadius - offset);
+                if (Vector3.Dot(vel, outward) < 0f) vel = Vector3.ProjectOnPlane(vel, outward);
+            }
+        }
 
         Vector3 flat = vel; flat.y = 0f;
         if (flat.sqrMagnitude > 0.5f)
@@ -208,7 +227,7 @@ public class PlayerController : MonoBehaviour
             while (crumbs.Count > 0 && Time.time - crumbs[0].t > crumbSeconds) crumbs.RemoveAt(0);
         }
 
-        bool swapPressed = kb.leftShiftKey.wasPressedThisFrame || (mouse != null && mouse.rightButton.wasPressedThisFrame);
+        bool swapPressed = kb.qKey.wasPressedThisFrame;
         if (swapPressed && WorldState.Instance != null) WorldState.Instance.Swap();
     }
 }

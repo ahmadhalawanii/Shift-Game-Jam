@@ -29,6 +29,8 @@ public class WorldAmbience : MonoBehaviour
         source.spatialBlend = 0f;
         source.loop = true;
         source.playOnAwake = true;
+        // A silent looping clip keeps the source playing, so the filter below is always called.
+        if (source.clip == null) source.clip = AudioClip.Create("Ambience carrier", (int)sampleRate, 1, (int)sampleRate, false);
         if (!source.isPlaying) source.Play();
     }
 

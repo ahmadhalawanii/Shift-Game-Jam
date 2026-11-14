@@ -112,13 +112,13 @@ public static partial class WorldKit
             .Emit(Light * 0.45f, Color.black, 0f).F("_ExistIn", 1f).F("_Wind", 1.2f).F("_WindHeight", 40f).F("_Translucency", 1f)
             .F("_VariationScale", 0.06f).F("_FogInfluence", 0.5f);
         Mushroom = Surface("Mushroom", "#6FD8E8", "#25508A", "#BFE6FF", "#1A2C48", "#050A16", "#2A1F4A")
-            .Emit(Cyan * 1.8f, Violet * 0.9f, 1f, 0.3f, 2.5f).F("_VariationAmount", 0.3f);
+            .Emit(Cyan * 1.8f, Violet * 0.45f, 1f, 0.3f, 2.5f).F("_VariationAmount", 0.3f);
         Bone = Surface("Bone", "#A8C8DE", "#1B3250", "#7FA6C8", "#A8C8DE", "#1B3250", "#7FA6C8")
-            .F("_ExistIn", 2f).F("_FogInfluence", 0.9f).F("_VariationScale", 0.05f).F("_VariationAmount", 0.4f).F("_SeamPush", 0f).C("_NightRim", Moon * 0.6f);
+            .F("_ExistIn", 2f).F("_FogInfluence", 0.6f).F("_VariationScale", 0.05f).F("_VariationAmount", 0.4f).F("_SeamPush", 0f).C("_NightRim", Moon * 0.6f);
         Lurker = Surface("Lurker", "#0A1426", "#03060E", "#0F1E36", "#081120", "#02040A", "#0C1930")
             .F("_ExistIn", 2f).F("_VariationAmount", 0.2f).F("_SeamPush", 0f).C("_NightRim", Moon * 0.25f);
         ArenaFloor = Surface("ArenaFloor", "#3A3460", "#1C1838", "#4A4478", "#131F33", "#070C16", "#1B2B45")
-            .F("_VariationScale", 0.12f).F("_VariationAmount", 0.35f).F("_SeamPush", 0f).F("_Corruption", 0.35f)
+            .F("_VariationScale", 0.12f).F("_VariationAmount", 0.35f).F("_SeamPush", 0f).F("_Corruption", 0.12f)
             .C("_DreamRim", Color.black).C("_NightRim", Color.black);
         foreach (int exist in new[] { 0, 1, 2 })
         {

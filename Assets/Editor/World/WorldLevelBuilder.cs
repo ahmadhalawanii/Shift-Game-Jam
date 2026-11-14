@@ -434,7 +434,7 @@ public static class WorldLevelBuilder
         Put("IslandSmall", new Vector3(0f, -32.6f, -96.5f), 120f);
         Put("LanternLit", new Vector3(2.2f, -32.6f, -96f), 200f);
         Put("FlowerPatch", new Vector3(-1.5f, -32.6f, -97.5f));
-        Put("PetalPlatform", new Vector3(3f, -32.2f, -84.5f), 50f);
+        Put("PetalPlatform", new Vector3(3f, -32.2f, -85.8f), 50f);
         Put("ThornWalkway", new Vector3(-1f, -31.6f, -75f), -12f);
         Put("IslandMedium", new Vector3(0f, -30.8f, -61f));
         Dress(new Vector3(0f, -30.8f, -61f), 7f, 2, 2, 4, 2);
@@ -467,17 +467,21 @@ public static class WorldLevelBuilder
         Put("WallRunPanel", new Vector3(6f, -28.3f, -44f));
         Put("BarkLedge", new Vector3(2.4f, -31.8f, -47.5f), 20f, 0.8f);
         Put("BarkLedge", new Vector3(2.2f, -31.2f, -39.5f), -15f, 0.8f);
-        Put("IslandSmall", new Vector3(3.2f, -29.8f, -30.5f), 40f);
-        Put("LanternLit", new Vector3(1.6f, -29.8f, -31f), 150f);
+        Put("IslandMedium", new Vector3(2.5f, -30f, -30.5f), 40f);
+        Put("LanternLit", new Vector3(0.5f, -30f, -31f), 150f);
+        Put("FlowerPatch", new Vector3(1f, -30f, -27.5f));
+        Put("Mushrooms", new Vector3(-1.5f, -30f, -32f), 0f, 0.8f);
         // Second run: Dream handholds, then Nightmare handholds. Shift where they overlap.
         Put("WallRunPanel_Dream", new Vector3(6f, -27f, -19f));
-        Put("WallRunPanel_Nightmare", new Vector3(6f, -26.3f, -8f));
-        Put("BarkLedge", new Vector3(4f, -26.8f, 2.6f), 80f);
+        Put("WallRunPanel_Nightmare", new Vector3(6f, -26.3f, -10.5f));
+        // The run ends over a wide landing, one step below the hollow.
+        Put("IslandMedium", new Vector3(3f, -28f, 3f), 200f);
+        Put("Lantern", new Vector3(0.5f, -28f, 1f), 100f);
 
         for (int i = 0; i < 5; i++) Put("HangingVines", new Vector3(8.2f + R(-0.5f, 1.5f), -12f - i * 1.5f, -50f + i * 12f), R(-8f, 8f), R(1f, 1.5f));
         for (int i = 0; i < 4; i++) ShaftOfLight(new Vector3(4f + R(-2f, 1f), -4f, -48f + i * 13f), 30f, R(3f, 6f), 8f);
         Put("ThornCluster", new Vector3(7.4f, -29.5f, -34f), 0f, 1.6f);
-        Put("ThornCluster", new Vector3(7.6f, -27f, -10f), 0f, 2f);
+        Put("ThornCluster", new Vector3(7.6f, -24f, -10f), 0f, 2f);
         Put("Mushrooms", new Vector3(7.2f, -25.6f, -24f), 0f, 1.6f);
         Put("Motes", new Vector3(2f, -26f, -28f), Vector3.zero, new Vector3(0.8f, 1.2f, 2.2f));
         Fog(new Vector3(-22f, -32f, -30f), 64f, 18f);
@@ -489,10 +493,10 @@ public static class WorldLevelBuilder
     static void BuildGloam(List<LevelFlow.Zone> zones)
     {
         Group("Zone 4 Gloam Hollow");
-        var c = new Vector3(0f, -26f, 19f);
-        Zone(zones, "The Gloam Hollow", new Vector3(0f, -25.9f, 7.5f),
+        var c = new Vector3(0f, -27f, 19f);
+        Zone(zones, "The Gloam Hollow", new Vector3(0f, -26.9f, 7.5f),
             "Moths: in Dream, hold right-click near them to absorb them. Crawlers charge along the line they show. Watchers can only be hurt in Nightmare.");
-        Checkpoint(3, new Vector3(0f, -25f, 7.5f), 5f);
+        Checkpoint(3, new Vector3(0f, -26f, 8f), 4.5f);
         Put("IslandLarge", c, 140f);
         Dress(c, 15f, 3, 3, 5, 6);
         for (int i = 0; i < 7; i++)
@@ -624,6 +628,13 @@ public static class WorldLevelBuilder
         Checkpoint(6, new Vector3(0f, 0.6f, 108.5f), 4f);
     }
 
+    // Distant copies of kit pieces take the far-bark material: no fine veins, more fog.
+    static void Far(GameObject g)
+    {
+        foreach (var r in g.GetComponentsInChildren<MeshRenderer>())
+            if (r.sharedMaterial == WorldKit.Bark) r.sharedMaterial = WorldKit.Silhouette;
+    }
+
     // ---------- Depth layers: side islands, far trees, the mist sea ----------
 
     static void BuildBackdrop()
@@ -659,9 +670,9 @@ public static class WorldLevelBuilder
         for (int i = 0; i < 5; i++)
             Put("SilhouetteTreeA", new Vector3(-120f + i * 60f + R(-15f, 15f), R(-64f, -48f), -230f - R(0f, 60f)), R(0f, 360f), R(1.2f, 2f));
         // Great roots arcing through the distance.
-        Put("RootArchBig", new Vector3(-95f, -50f, -40f), 70f, 4.5f);
-        Put("RootArchBig", new Vector3(110f, -56f, 60f), 110f, 5f);
-        Put("RootArchBig", new Vector3(-120f, -40f, 110f), 40f, 4f);
+        Far(Put("RootArchBig", new Vector3(-95f, -50f, -40f), 70f, 4.5f));
+        Far(Put("RootArchBig", new Vector3(110f, -56f, 60f), 110f, 5f));
+        Far(Put("RootArchBig", new Vector3(-120f, -40f, 110f), 40f, 4f));
         for (int i = 0; i < 6; i++)
         {
             float side = i % 2 == 0 ? -1f : 1f;

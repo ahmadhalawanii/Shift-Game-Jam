@@ -205,6 +205,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   size: {x: 0.6, y: 5, z: 14}
   existsIn: 1
+  grace: 0.4
 --- !u!1 &6389235211243086985
 GameObject:
   m_ObjectHideFlags: 0

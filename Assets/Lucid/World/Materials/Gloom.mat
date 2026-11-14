@@ -42,6 +42,6 @@ Material:
     - _WindHeight: 4
     m_Colors:
     - _DreamColor: {r: 0, g: 0, b: 0, a: 1}
-    - _NightColor: {r: 0.7935294, g: 0.3670588, b: 0.8435294, a: 1.15}
+    - _NightColor: {r: 0.8982353, g: 0.34, b: 0.62, a: 1.75}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

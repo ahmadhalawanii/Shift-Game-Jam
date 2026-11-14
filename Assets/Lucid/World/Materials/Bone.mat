@@ -29,7 +29,7 @@ Material:
     - _EmissionMask: 0
     - _EmissionVeins: 0
     - _ExistIn: 2
-    - _FogInfluence: 0.9
+    - _FogInfluence: 0.6
     - _FoldDream: 0
     - _FoldHinge: 0.2
     - _FoldHingeY: 0

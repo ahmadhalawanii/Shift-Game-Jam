@@ -190,12 +190,9 @@ public class PlayerController : MonoBehaviour
         {
             var s = all[i];
             if (s == null || (only != null && s != only) || !s.UsableAt(chest)) continue;
-            Vector3 d = chest - s.Closest(chest);
-            if (Mathf.Abs(d.y) > 0.9f) continue; // above or below the panel
-            d.y = 0f;
-            float m = d.magnitude;
-            if (m < 0.02f || m > reach || m >= distance) continue;
-            found = s; normal = d / m; distance = m;
+            Vector3 n; float m;
+            if (!s.Face(chest, out n, out m) || m > reach || m >= distance) continue;
+            found = s; normal = n; distance = m;
         }
         return found != null;
     }
@@ -316,6 +313,13 @@ public class PlayerController : MonoBehaviour
         {
             WallRunSurface s; Vector3 n; float d;
             bool held = FindWall(wall, wallReach + 0.7f, out s, out n, out d);
+            // The handholds changed world mid-run: carry on along the wall that holds now.
+            if (!held && FindWall(null, wallReach + 0.7f, out s, out n, out d) && s != wall)
+            {
+                wall = s;
+                wallRunLeft = wallRunTime;
+                held = true;
+            }
             wallRunLeft -= dt;
             if (!held || wallRunLeft <= 0f || (grounded && wallRunLeft < wallRunTime - 0.2f))
             {

@@ -86,7 +86,7 @@ public static partial class WorldKit
             var m = new MeshData();
             var rng = new System.Random(12);
             for (int i = 0; i < 8; i++)
-                m.Append(WorldMeshes.Thorn(Rnd(rng, 1.4f, 4.2f), Rnd(rng, 0.14f, 0.32f), Rnd(rng, 0.1f, 0.4f), 6, 5, W(0.8f), W(1f), 1f),
+                m.Append(WorldMeshes.Thorn(Rnd(rng, 1f, 2.8f), Rnd(rng, 0.12f, 0.26f), Rnd(rng, 0.1f, 0.4f), 6, 5, W(0.8f), W(1f), 1f),
                     new Vector3(Rnd(rng, -0.7f, 0.7f), -0.2f, Rnd(rng, -0.7f, 0.7f)), Quaternion.Euler(0f, Rnd(rng, 0f, 360f), 0f) * Quaternion.Euler(0f, 0f, -Rnd(rng, 8f, 50f)), 1f);
             var root = new GameObject("ThornCluster");
             Part(root.transform, "Thorns", SaveMesh(m, "ThornCluster_Mesh"), ThornLean);
@@ -222,7 +222,7 @@ public static partial class WorldKit
 
         // The rising gloom of the Rootclimb: a pool of corruption that climbs in Nightmare.
         {
-            var gloom = Glow("Gloom", Color.black, Violet * 0.9f + Hazard * 0.25f, 1, 0).F("_ExistIn", 2f).F("_Pulse", 0.3f).F("_FogInfluence", 0f);
+            var gloom = Glow("Gloom", Color.black, Corrupt * 1.2f + Hazard * 0.55f, 1, 0).F("_ExistIn", 2f).F("_Pulse", 0.3f).F("_FogInfluence", 0f);
             var root = new GameObject("RisingGloom");
             Part(root.transform, "Pool", flatQuad, gloom).At(new Vector3(0f, 1.4f, 0f)).Scaled(new Vector3(46f, 1f, 46f));
             Part(root.transform, "PoolLow", flatQuad, gloom).At(new Vector3(0f, 0.2f, 0f)).Scaled(new Vector3(60f, 1f, 60f));
@@ -494,13 +494,13 @@ public static partial class WorldKit
             p.y *= Mathf.Lerp(1f, 0.62f, t);
             if (p.y < -2.5f) p.y = -2.5f + (p.y + 2.5f) * 0.25f;
             float e = Mathf.Min((p - eyeL).magnitude, (p - eyeR).magnitude);
-            p -= p.normalized * Mathf.Max(0f, 2.7f - e) * 0.9f;
+            p -= p.normalized * Mathf.Max(0f, 3.3f - e) * 1.1f;
             return p;
         };
         var m = Blob(16, 24, new Vector3(8f, 7f, 11f), 3, 0.1f, 1.1f, shape, (p, d) =>
         {
             float e = Mathf.Min((p - eyeL).magnitude, (p - eyeR).magnitude);
-            float open = Mathf.SmoothStep(1.4f, 3f, e) * Mathf.SmoothStep(0.7f, 1.7f, (p - nose).magnitude);
+            float open = Mathf.SmoothStep(2f, 3.7f, e) * Mathf.SmoothStep(0.9f, 2.1f, (p - nose).magnitude);
             return W(Mathf.Lerp(0.03f, 0.75f + 0.25f * d.y, open));
         });
         for (int side = -1; side <= 1; side += 2)
@@ -523,8 +523,8 @@ public static partial class WorldKit
         m.Append(jaw, new Vector3(0f, -6.6f, -1.5f), Quaternion.Euler(-17f, 0f, 0f), 1f);
         var root = new GameObject("Skull");
         Part(root.transform, "Bone", SaveMesh(m, "Skull_Mesh"), Bone);
-        Part(root.transform, "EyeL", sphere, EyeViolet).At(eyeL + new Vector3(0.4f, 0f, 1.2f), default(Vector3), 2.6f);
-        Part(root.transform, "EyeR", sphere, EyeViolet).At(eyeR + new Vector3(-0.4f, 0f, 1.2f), default(Vector3), 2.6f);
+        Part(root.transform, "EyeL", sphere, EyeViolet).At(eyeL + new Vector3(0.4f, 0f, 1.6f), default(Vector3), 3.3f);
+        Part(root.transform, "EyeR", sphere, EyeViolet).At(eyeR + new Vector3(-0.4f, 0f, 1.6f), default(Vector3), 3.3f);
         SavePrefab(root);
     }
 

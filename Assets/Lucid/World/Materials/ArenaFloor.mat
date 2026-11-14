@@ -25,7 +25,7 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _Corruption: 0.35
+    - _Corruption: 0.12
     - _EmissionMask: 0
     - _EmissionVeins: 0
     - _ExistIn: 0

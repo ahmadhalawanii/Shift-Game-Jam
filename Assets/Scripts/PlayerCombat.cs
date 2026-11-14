@@ -78,7 +78,7 @@ public class PlayerCombat : MonoBehaviour
     public void OnGoldAbsorb(Vector3 where, float bonusPower, float heal)
     {
         AddPower(bonusPower);
-        if (avatar != null) avatar.memory = Mathf.Min(1f, avatar.memory + heal);
+        if (avatar != null) avatar.health = Mathf.Min(1f, avatar.health + heal);
         Fx.Burst(where, new Color(1f, 0.85f, 0.3f), 22);
     }
 
@@ -92,7 +92,7 @@ public class PlayerCombat : MonoBehaviour
         }
         World w = WorldState.Instance != null ? WorldState.Instance.Current : World.Dream;
         var mouse = Mouse.current;
-        if (mouse == null || (pc != null && pc.Recalling) || (avatar != null && avatar.memory <= 0f))
+        if (mouse == null || (pc != null && pc.Recalling) || (avatar != null && avatar.health <= 0f))
         {
             CancelBurst();
             HideShield();
@@ -249,7 +249,7 @@ public class PlayerCombat : MonoBehaviour
         if (ResonanceLevel != before) LucidAudio.PlayResonance(ResonanceLevel);
         if (avatar != null)
         {
-            avatar.memory = Mathf.Min(1f, avatar.memory + 0.012f);
+            avatar.health = Mathf.Min(1f, avatar.health + 0.012f);
             avatar.Sharpen();
         }
         LucidAudio.Play(LucidAudio.Cue.Capture);

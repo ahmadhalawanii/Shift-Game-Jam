@@ -1,13 +1,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
-// The player as a fading memory: a figure of drifting light with RGB-split afterimages.
-// memory (0..1) is the player's health: lower memory means more of the figure has dissolved.
+// The player as a fading memory: a figure of drifting light.
+// health (0..1): lower health means more of the figure has dissolved.
 // The body is animated in the shader from the parameters set here (stride, lean, aim, shield, dash, flinch).
 public class MemoryAvatar : MonoBehaviour
 {
-    [Range(0f, 1f)] public float memory = 1f;
+    [FormerlySerializedAs("memory")] [Range(0f, 1f)] public float health = 1f;
     public Renderer[] ghosts;               // 0 = the figure, 1 and 2 = delayed afterimages
     public float[] delays = { 0f, 0.12f, 0.24f };
     public float[] alphas = { 0.5f, 0.22f, 0.18f };
@@ -81,8 +82,8 @@ public class MemoryAvatar : MonoBehaviour
         var kb = Keyboard.current;
         if (kb != null)
         {
-            if (kb.leftBracketKey.isPressed) memory = Mathf.Max(0.05f, memory - 0.4f * Time.deltaTime);
-            if (kb.rightBracketKey.isPressed) memory = Mathf.Min(1f, memory + 0.4f * Time.deltaTime);
+            if (kb.leftBracketKey.isPressed) health = Mathf.Max(0.05f, health - 0.4f * Time.deltaTime);
+            if (kb.rightBracketKey.isPressed) health = Mathf.Min(1f, health + 0.4f * Time.deltaTime);
         }
 
         float dt = Time.deltaTime;
@@ -114,7 +115,7 @@ public class MemoryAvatar : MonoBehaviour
         float mix = WorldState.MixOrZero;
         float scatter = Time.time < scatterUntil ? Mathf.Sin((scatterUntil - Time.time) / scatterLength * Mathf.PI) : 0f;
         float sharp = Time.time < sharpenUntil ? 0.15f : 0f;
-        float strength = Mathf.Clamp01(memory + sharp - scatter * 0.9f) * 1.02f;
+        float strength = Mathf.Clamp01(health + sharp - scatter * 0.9f) * 1.02f;
 
         for (int i = 0; i < ghosts.Length; i++)
         {
@@ -145,7 +146,7 @@ public class MemoryAvatar : MonoBehaviour
         if (glow != null)
         {
             glow.color = Color.Lerp(new Color(1f, 0.8f, 0.65f), new Color(1f, 0.3f, 0.12f), mix);
-            glow.intensity = Mathf.Lerp(0.4f, 1.6f, memory) * (1f - scatter * 0.7f) * (1f + aim * 0.8f + shield * 0.6f);
+            glow.intensity = Mathf.Lerp(0.4f, 1.6f, health) * (1f - scatter * 0.7f) * (1f + aim * 0.8f + shield * 0.6f);
         }
     }
 

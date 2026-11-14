@@ -64,7 +64,7 @@ public class PlayerController : MonoBehaviour
         checkpoint = transform.position;
     }
 
-    // Enemy hit. Dashing gives brief invulnerability; empty memory ends the encounter.
+    // Enemy hit. Dashing gives brief invulnerability; empty health ends the encounter.
     public void Damage(float amount)
     {
         if (EclipseEncounter.Finished) return;
@@ -75,11 +75,11 @@ public class PlayerController : MonoBehaviour
         LastHitTime = Time.time;
         if (avatar != null)
         {
-            avatar.memory = Mathf.Max(0f, avatar.memory - amount);
+            avatar.health = Mathf.Max(0f, avatar.health - amount);
             avatar.Scatter(0.2f);
-            if (avatar.memory <= 0f && EclipseEncounter.Instance != null)
+            if (avatar.health <= 0f && EclipseEncounter.Instance != null)
             {
-                avatar.memory = 0f;
+                avatar.health = 0f;
                 EclipseEncounter.Instance.End(false);
                 return;
             }
@@ -108,11 +108,11 @@ public class PlayerController : MonoBehaviour
     }
 
     // Fell or got hurt: flow back along the path you just walked.
-    public void BeginRecall(float memoryCost)
+    public void BeginRecall(float healthCost)
     {
         if (recalling) return;
         recalling = true;
-        recallCost = memoryCost;
+        recallCost = healthCost;
         recallTargetT = Time.time - recallBackSeconds;
         cc.enabled = false;
         vel = Vector3.zero; vy = 0f; dashLeft = 0f;
@@ -126,8 +126,8 @@ public class PlayerController : MonoBehaviour
         vel = Vector3.zero;
         if (avatar != null)
         {
-            avatar.memory = Mathf.Max(0.05f, avatar.memory - recallCost);
-            if (avatar.memory <= 0.06f) avatar.memory = 1f; // out of memory: restore (no fail state yet)
+            avatar.health = Mathf.Max(0.05f, avatar.health - recallCost);
+            if (avatar.health <= 0.06f) avatar.health = 1f; // out of health: restore (no fail state yet)
             avatar.Sharpen();
         }
     }

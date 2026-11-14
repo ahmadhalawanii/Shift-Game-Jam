@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// Minimal placeholder HUD: world, memory, echo status, controls and a hint for the current stretch of the level.
+// Minimal placeholder HUD: world, health bar, echo status, controls and a hint for the current stretch of the level.
 public class LevelHUD : MonoBehaviour
 {
     public static LevelHUD Instance { get; private set; }
@@ -12,6 +12,38 @@ public class LevelHUD : MonoBehaviour
     GUIStyle big, small;
     PlayerController pc;
     Texture2D ring;
+
+    // Health bar: the red fill drops at once, a pale chip holds the old value for chipHold seconds then drains.
+    // .linear: the project is in linear colour space, and IMGUI would otherwise show these washed out.
+    static readonly Color HealthRed = new Color(0xE0 / 255f, 0x34 / 255f, 0x3A / 255f).linear;
+    static readonly Color ChipColor = new Color(1f, 0.85f, 0.88f).linear;
+    const float ChipHold = 0.4f, ChipDrain = 5f;
+    float chip = 1f, lastHealth = 1f, chipDrainAt;
+
+    void Update()
+    {
+        if (avatar == null) return;
+        float h = avatar.health;
+        if (h < lastHealth - 0.0001f) { chip = Mathf.Max(chip, lastHealth); chipDrainAt = Time.unscaledTime + ChipHold; }
+        lastHealth = h;
+        if (h >= chip) chip = h;
+        else if (Time.unscaledTime >= chipDrainAt) chip = Mathf.Lerp(chip, h, 1f - Mathf.Exp(-ChipDrain * Time.unscaledDeltaTime));
+    }
+
+    void DrawHealthBar()
+    {
+        float h = avatar != null ? Mathf.Clamp01(avatar.health) : 1f;
+        float w = Mathf.Min(320f, Screen.width * 0.4f), bh = 16f, x = 20f, y = Screen.height - 156f;
+        GUI.Label(new Rect(x, y - 24f, 200f, 22f), "HEALTH  " + Mathf.RoundToInt(h * 100f), small);
+        Color keep = GUI.color;
+        GUI.color = new Color(0.003f, 0.002f, 0.004f, 0.85f);
+        GUI.DrawTexture(new Rect(x - 2f, y - 2f, w + 4f, bh + 4f), Texture2D.whiteTexture);
+        GUI.color = ChipColor;
+        GUI.DrawTexture(new Rect(x, y, w * Mathf.Clamp01(chip), bh), Texture2D.whiteTexture);
+        GUI.color = HealthRed;
+        GUI.DrawTexture(new Rect(x, y, w * h, bh), Texture2D.whiteTexture);
+        GUI.color = keep;
+    }
     EclipseVisual bossVisual;
 
     // Square texture whose alpha is f(distance from centre, 0 at centre, 1 at the edge midpoints).
@@ -102,9 +134,8 @@ public class LevelHUD : MonoBehaviour
                 GUI.Label(new Rect(Screen.width/2f - 215, Screen.height/2f + 10, 450, 30), encounter.BossFightStarted ? "Press R to retry the Sleeper" : "Press R to retry Level 1", small);
             }
         }
-        int mem = avatar != null ? Mathf.RoundToInt(avatar.memory * 100f) : 100;
         GUI.Label(new Rect(20, 16, 500, 32), world, big);
-        GUI.Label(new Rect(20, 46, 500, 24), "Memory " + mem + "%", small);
+        DrawHealthBar();
         if (combat != null) GUI.Label(new Rect(20, 70, 700, 24), "Power " + Mathf.RoundToInt(combat.Power) + " / " + Mathf.RoundToInt(combat.maxPower), small);
         if (combat != null && combat.IsChargingBurst)
             GUI.Label(new Rect(20, 100, 500, 24), $"BURST CHARGE  {combat.BurstCharge01:P0}", small);

@@ -45,6 +45,7 @@ public class ThirdPersonCamera : MonoBehaviour
     float lockYaw, lockYawVel;
     float lockDist, lockDistVel, lockFov, lockFovVel;
     Vector2 nudge;
+    float lockArm = 4.5f, lockArmVel;
 
     void Awake() { Instance = this; }
     void OnDestroy() { if (Instance == this) Instance = null; }
@@ -160,7 +161,7 @@ public class ThirdPersonCamera : MonoBehaviour
         Quaternion arm = Quaternion.Euler(c.pitch, lockYaw, 0f);
         Vector3 chest = p + Vector3.up * c.height;
         Vector3 pivot = chest + Quaternion.Euler(0f, lockYaw, 0f) * Vector3.right * c.shoulder;
-        Vector3 pos = pivot - arm * Vector3.forward * lockDist;
+        Vector3 pos = LockCollide(pivot, -(arm * Vector3.forward), lockDist, boss);
         Vector3 look = Vector3.Lerp(chest, b, c.bossWeight);
 
         // Yaw aims at the weighted look point. Pitch and FOV are solved so the player sits at playerScreenY
@@ -187,6 +188,28 @@ public class ThirdPersonCamera : MonoBehaviour
         fov = lockFov;
         LookPoint = look;
         LockDebug = $"LOCK  dist {lockDist:F1}  fov {lockFov:F0}  gap {gap:F1}  nudge {nudge.x:F1},{nudge.y:F1}";
+        return pos;
+    }
+
+    // Deoccluder: the arm shortens at once when arena geometry is in the way and eases back out.
+    // The boss has no collider, so the camera is also pushed out of its body sphere.
+    Vector3 LockCollide(Vector3 pivot, Vector3 back, float length, EclipseBoss boss)
+    {
+        var c = lockCfg;
+        float free = length;
+        int hits = Physics.SphereCastNonAlloc(pivot, c.probeRadius, back, obstructionHits, length,
+            Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < hits; i++)
+            if (!obstructionHits[i].transform.IsChildOf(target))
+                free = Mathf.Min(free, Mathf.Max(0.6f, obstructionHits[i].distance - 0.05f));
+        lockArm = free < lockArm ? free : Mathf.SmoothDamp(lockArm, free, ref lockArmVel, 0.25f);
+        Vector3 pos = pivot + back * lockArm;
+        pos.y = Mathf.Max(pos.y, target.position.y + 0.4f);
+
+        Vector3 fromBoss = pos - boss.transform.position;
+        float clear = boss.radius * boss.transform.localScale.y / 1.25f + c.bossClearance;
+        if (fromBoss.sqrMagnitude < clear * clear)
+            pos = boss.transform.position + (fromBoss.sqrMagnitude > 0.001f ? fromBoss.normalized : Vector3.up) * clear;
         return pos;
     }
 

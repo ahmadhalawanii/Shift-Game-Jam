@@ -21,6 +21,12 @@ public sealed class EclipseVisual : MonoBehaviour
     Material dreamPetal, nightmarePetal, dreamVein, nightmareVein, eyeGlow;
     Material stone, fissures, seals, core;
     float charge;
+    // Upgrade: counter-rotating blade rings, floating crystal core, orbiting shards, sky eclipse ring.
+    Transform bladeRingA, bladeRingB, crystal, shardOrbit, eclipseRing;
+    readonly Transform[] shards = new Transform[10];
+    Material bladeGlow, ringGlow;
+    float flash, snap;
+    int lastPhase = 1;
 
     void Awake()
     {
@@ -35,9 +41,93 @@ public sealed class EclipseVisual : MonoBehaviour
         dreamVein = fissures;
         nightmareVein = MakeGlow("Sleeper / ember veins");
         eyeGlow = MakeGlow("Sleeper / golden eye");
+        bladeGlow = MakeGlow("Sleeper / blade edges");
+        ringGlow = MakeGlow("Sleeper / eclipse ring");
         BuildBlossom();
         BuildSeals();
+        BuildCrown();
         ApplyPalette(0f, 0f, false);
+    }
+
+    void OnEnable() { WorldState.VisualChanged += OnVisualChanged; }
+    void OnDisable() { WorldState.VisualChanged -= OnVisualChanged; }
+
+    // The swap crest: the eye flashes, petals snap and a shockwave leaves the boss.
+    void OnVisualChanged(World w)
+    {
+        if (boss == null || !boss.Engaged) return;
+        flash = 1f;
+        snap = w == World.Nightmare ? 1f : -1f;
+        CombatPulse.Spawn(transform.position, 16f, w == World.Nightmare ? new Color(1f, 0.35f, 0.08f) : new Color(1f, 0.7f, 0.85f));
+    }
+
+    void BuildCrown()
+    {
+        // Two rings of faceted blades behind the face, spun in opposite directions.
+        bladeRingA = Pivot("Blade ring inner", figure);
+        bladeRingB = Pivot("Blade ring outer", figure);
+        for (int ring = 0; ring < 2; ring++)
+        {
+            var body = new Geometry();
+            var edge = new Geometry();
+            int count = ring == 0 ? 12 : 18;
+            float inner = ring == 0 ? 6.2f : 8.4f, outer = ring == 0 ? 8.6f : 11.4f, z = ring == 0 ? 2.6f : 3.2f;
+            for (int i = 0; i < count; i++)
+            {
+                float a = i * Mathf.PI * 2f / count, w = Mathf.PI / count * 0.45f;
+                Vector3 r0 = V(Mathf.Cos(a - w), Mathf.Sin(a - w), 0f), r1 = V(Mathf.Cos(a + w), Mathf.Sin(a + w), 0f);
+                Vector3 mid = V(Mathf.Cos(a + w * 0.4f), Mathf.Sin(a + w * 0.4f), 0f);
+                Vector3 c = V(0f, 0.4f, z);
+                Vector3 b0 = c + r0 * inner, b1 = c + r1 * inner, tip = c + mid * outer, ridge = c + mid * (inner + outer) * 0.5f + V(0f, 0f, -0.45f);
+                body.Triangle(b0, ridge, tip); body.Triangle(ridge, b1, tip);
+                body.Triangle(b0, tip, ridge); body.Triangle(ridge, tip, b1);
+                edge.Ribbon(new[] { b0, tip, b1 }, 0.035f);
+            }
+            Transform parent = ring == 0 ? bladeRingA : bladeRingB;
+            Attach("Petal blades", body, parent, ring == 0 ? dreamPetal : nightmarePetal);
+            Attach("Blade edges", edge, parent, bladeGlow, true);
+        }
+
+        // Floating icosahedron core in front of the face plate.
+        crystal = Pivot("Crystal core", figure);
+        crystal.localPosition = V(0f, 2.5f, -2.3f);
+        var ico = new Geometry();
+        float t = (1f + Mathf.Sqrt(5f)) * 0.5f;
+        Vector3[] v =
+        {
+            V(-1, t, 0), V(1, t, 0), V(-1, -t, 0), V(1, -t, 0), V(0, -1, t), V(0, 1, t),
+            V(0, -1, -t), V(0, 1, -t), V(t, 0, -1), V(t, 0, 1), V(-t, 0, -1), V(-t, 0, 1)
+        };
+        int[] f = { 0,11,5, 0,5,1, 0,1,7, 0,7,10, 0,10,11, 1,5,9, 5,11,4, 11,10,2, 10,7,6, 7,1,8,
+                    3,9,4, 3,4,2, 3,2,6, 3,6,8, 3,8,9, 4,9,5, 2,4,11, 6,2,10, 8,6,7, 9,8,1 };
+        for (int i = 0; i < f.Length; i += 3) ico.Triangle(v[f[i]] * 0.42f, v[f[i + 1]] * 0.42f, v[f[i + 2]] * 0.42f);
+        Attach("Icosahedron", ico, crystal, core, true);
+
+        // Shard debris orbiting the blossom.
+        shardOrbit = Pivot("Shard orbit", figure);
+        for (int i = 0; i < shards.Length; i++)
+        {
+            shards[i] = Pivot("Orbit shard " + i, shardOrbit);
+            float a = i * Mathf.PI * 2f / shards.Length;
+            shards[i].localPosition = V(Mathf.Cos(a) * (7f + i % 3), Mathf.Sin(a * 2f) * 1.5f + 1f, Mathf.Sin(a) * (7f + i % 3));
+            var shard = new Geometry();
+            float s = 0.35f + (i % 3) * 0.15f;
+            Vector3 p0 = V(0, s * 2.2f, 0), p1 = V(-s, 0, -s * 0.6f), p2 = V(s, 0, -s * 0.6f), p3 = V(0, 0, s), p4 = V(0, -s * 1.6f, 0);
+            shard.Triangle(p0, p1, p2); shard.Triangle(p0, p2, p3); shard.Triangle(p0, p3, p1);
+            shard.Triangle(p4, p2, p1); shard.Triangle(p4, p3, p2); shard.Triangle(p4, p1, p3);
+            Attach("Shard", shard, shards[i], i % 2 == 0 ? nightmarePetal : dreamPetal);
+        }
+
+        // A huge eclipse ring hangs in the sky behind the arena and opens at each phase.
+        var ringRoot = new GameObject("Sky eclipse ring");
+        eclipseRing = ringRoot.transform;
+        eclipseRing.position = EclipseEncounter.ArenaCenter + V(0f, 24f, 38f);
+        var sky = new Geometry();
+        sky.Arc(16f, 16f, 0f, 360f, Vector3.zero, 0.9f, 96);
+        sky.Arc(18.5f, 18.5f, 10f, 170f, Vector3.zero, 0.25f, 48);
+        sky.Arc(18.5f, 18.5f, 190f, 350f, Vector3.zero, 0.25f, 48);
+        Attach("Eclipse ring", sky, eclipseRing, ringGlow, true);
+        eclipseRing.localScale = Vector3.zero;
     }
 
     void LateUpdate()
@@ -64,6 +154,30 @@ public sealed class EclipseVisual : MonoBehaviour
             roots[i].localRotation = Quaternion.Euler(0f, Mathf.Sin(t * (1f + mix) + i) * (4f + mix * 10f), 0f);
         eye.localScale = new Vector3(1f, Mathf.Lerp(0.055f, 1f, opening), 1f);
         innerSeal.localRotation = Quaternion.Euler(0f, 0f, t * (engaged ? 3.5f : 1.4f));
+        flash = Mathf.MoveTowards(flash, 0f, Time.deltaTime * 2.5f);
+        snap = Mathf.MoveTowards(snap, 0f, Time.deltaTime * 3f);
+        float spin = engaged ? (6f + mix * 14f + charge * 30f) * (fused ? 1.6f : 1f) : 2f;
+        bladeRingA.localRotation = Quaternion.Euler(0f, 0f, t * spin);
+        bladeRingB.localRotation = Quaternion.Euler(0f, 0f, -t * spin * 0.7f);
+        float flare = 1f + mix * 0.12f + snap * 0.1f + charge * 0.08f;
+        bladeRingA.localScale = bladeRingB.localScale = Vector3.one * flare;
+        crystal.localRotation = Quaternion.Euler(t * 37f, t * 53f, t * 21f);
+        crystal.localScale = Vector3.one * (1f + charge * 0.5f + flash * 0.6f + (boss != null && boss.Stunned ? Mathf.Sin(t * 30f) * 0.25f : 0f));
+        shardOrbit.localRotation = Quaternion.Euler(0f, t * (12f + mix * 30f), 0f);
+        for (int i = 0; i < shards.Length; i++) shards[i].localRotation = Quaternion.Euler(t * (40f + i * 7f), t * 25f, 0f);
+        // In Nightmare the eye follows the player.
+        var pc = BossHazards.Player;
+        if (pc != null && mix > 0.05f)
+        {
+            Vector3 local = figure.InverseTransformPoint(pc.transform.position + Vector3.up);
+            Vector2 look = Vector2.ClampMagnitude(new Vector2(local.x, local.y) * 0.05f, 0.45f) * mix;
+            eye.localPosition = new Vector3(look.x, look.y, 0f);
+        }
+        else eye.localPosition = Vector3.zero;
+        if (boss != null && boss.Phase != lastPhase) { lastPhase = boss.Phase; flash = 1f; }
+        float ringOpen = boss == null || !engaged ? 0f : boss.InTransformation ? boss.ChargeAmount : boss.Phase > 1 ? 1f : 0f;
+        eclipseRing.localScale = Vector3.Lerp(eclipseRing.localScale, Vector3.one * ringOpen * (boss != null && boss.Phase == 3 ? 1.25f : 1f), Time.deltaTime * 2f);
+        eclipseRing.rotation = Quaternion.Euler(0f, 0f, t * 4f);
         outerSeal.localRotation = Quaternion.Euler(0f, 0f, -t * 1.1f);
         ApplyPalette(mix, charge, fused);
     }
@@ -82,7 +196,12 @@ public sealed class EclipseVisual : MonoBehaviour
         SetGlow(nightmareVein, Color.Lerp(cyan, ember, fused ? 1f : mix), 0.38f + anticipation * 0.28f);
         SetGlow(seals, Color.Lerp(cyan, ember, mix), 0.22f + anticipation * 0.2f);
         SetGlow(core, fused ? new Color(0.86f, 0.35f, 1f) : Color.Lerp(cyan, ember, mix), 0.54f);
-        SetGlow(eyeGlow, Color.Lerp(cyan, new Color(1f, 0.72f, 0.14f), fused ? 1f : mix), 0.78f);
+        SetGlow(eyeGlow, Color.Lerp(Color.Lerp(cyan, new Color(1f, 0.72f, 0.14f), fused ? 1f : mix), Color.white, flash), 0.78f + flash * 0.22f);
+        if (bladeGlow != null)
+        {
+            SetGlow(bladeGlow, Color.Lerp(new Color(1f, 0.85f, 0.9f), new Color(0.75f, 0.3f, 1f), mix), 0.3f + anticipation * 0.5f + flash * 0.3f);
+            SetGlow(ringGlow, fused ? new Color(0.85f, 0.3f, 1f) : Color.Lerp(new Color(1f, 0.85f, 0.6f), new Color(1f, 0.3f, 0.1f), mix), 0.55f);
+        }
     }
 
     void BuildBlossom()
@@ -292,6 +411,7 @@ public sealed class EclipseVisual : MonoBehaviour
     {
         // The generated subtree is owned by this component even when removed individually.
         if (figure != null) Destroy(figure.gameObject);
+        if (eclipseRing != null) Destroy(eclipseRing.gameObject);
         foreach (Mesh mesh in ownedMeshes) if (mesh != null) Destroy(mesh);
         foreach (Material material in ownedMaterials) if (material != null) Destroy(material);
     }

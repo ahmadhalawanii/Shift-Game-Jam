@@ -34,7 +34,7 @@ Shader "Lucid/EclipseOrb"
                 float rim=1-saturate(dot(n,normalize(GetWorldSpaceViewDir(i.world))));
                 float band=smoothstep(0.22,0.55,rim);
                 float vein=pow(saturate(sin(n.x*19+n.y*13+sin(n.z*17+_Time.y*2))),14)*0.18;
-                return half4(_Color.rgb*(band*1.3+vein)+float3(0.012,0.008,0.025),1);
+                return half4(_Color.rgb*(0.45+band*1.3+vein)+float3(0.012,0.008,0.025),1);
             }
             ENDHLSL
         }

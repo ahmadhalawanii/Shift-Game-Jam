@@ -40,7 +40,7 @@ public class EnemyBullet : MonoBehaviour
 
     void Awake()
     {
-        core = GetComponentInChildren<Renderer>();
+        core = GetComponentInChildren<MeshRenderer>();
         trail = GetComponent<TrailRenderer>();
         properties = new MaterialPropertyBlock();
     }
@@ -90,7 +90,9 @@ public class EnemyBullet : MonoBehaviour
         if (core != null && bossMaterial != null)
         {
             properties.Clear();
-            properties.SetColor(ColorId, tint);
+            // Pull the weakest channel down so bloom keeps the hue instead of washing it to white.
+            float m = Mathf.Min(tint.r, Mathf.Min(tint.g, tint.b)) * 0.6f;
+            properties.SetColor(ColorId, new Color(tint.r - m, tint.g - m, tint.b - m) * 1.6f);
             properties.SetFloat(ThornId, thorn);
             core.SetPropertyBlock(properties);
         }

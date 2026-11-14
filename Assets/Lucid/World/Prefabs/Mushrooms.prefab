@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1954124618788245492}
+  - component: {fileID: 4241635986515882705}
   m_Layer: 0
   m_Name: Mushrooms
   m_TagString: Untagged
@@ -32,6 +33,25 @@ Transform:
   - {fileID: 82010519403312221}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!205 &4241635986515882705
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 652155479923668526}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: 0.061624885, y: 0.6890441, z: 0.061165333}
+  m_Size: 2.5834546
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.025
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 2822517630636987312}
+  m_Enabled: 1
 --- !u!1 &3135930294454600036
 GameObject:
   m_ObjectHideFlags: 0

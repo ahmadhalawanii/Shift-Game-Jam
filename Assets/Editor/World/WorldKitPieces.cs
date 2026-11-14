@@ -45,6 +45,7 @@ public static partial class WorldKit
             var root = new GameObject("Blossom");
             var h = Part(root.transform, "Petals", SaveMesh(head, "Blossom_Petals"), Petal).At(new Vector3(0f, 1.6f, 0f));
             Part(h.transform, "Heart", SaveMesh(heart, "Blossom_Heart"), Bark);
+            Detail(root);
             SavePrefab(root);
         }
 
@@ -60,6 +61,7 @@ public static partial class WorldKit
             }
             var root = new GameObject("Mushrooms");
             Part(root.transform, "Caps", SaveMesh(m, "Mushrooms_Mesh"), Mushroom);
+            Detail(root);
             SavePrefab(root);
         }
 
@@ -78,6 +80,7 @@ public static partial class WorldKit
             }
             var root = new GameObject("FlowerPatch");
             Part(root.transform, "Flowers", SaveMesh(m, "FlowerPatch_Mesh"), Flowers);
+            Detail(root);
             SavePrefab(root);
         }
 
@@ -90,6 +93,7 @@ public static partial class WorldKit
                     new Vector3(Rnd(rng, -0.7f, 0.7f), -0.2f, Rnd(rng, -0.7f, 0.7f)), Quaternion.Euler(0f, Rnd(rng, 0f, 360f), 0f) * Quaternion.Euler(0f, 0f, -Rnd(rng, 8f, 50f)), 1f);
             var root = new GameObject("ThornCluster");
             Part(root.transform, "Thorns", SaveMesh(m, "ThornCluster_Mesh"), ThornLean);
+            Detail(root);
             SavePrefab(root);
         }
     }
@@ -396,6 +400,7 @@ public static partial class WorldKit
             Part(root.transform, "Bulb", sphere, LanternGlow).At(new Vector3(1.1f, 2.2f, 0f)).Scaled(new Vector3(0.42f, 0.55f, 0.42f));
             Part(root.transform, "Halo", quad, Halo).At(new Vector3(1.1f, 2.2f, 0f), default(Vector3), 3f);
             if (lit) PointLight(root.transform, new Vector3(1.1f, 2.2f, 0f), Gold, 3.5f, Moon, 1.6f, 11f);
+            Detail(root, 0.03f, "Halo");
             SavePrefab(root);
         }
 

@@ -84,6 +84,22 @@ The arena centre is fixed in code at `(0, 0, 141)`, so the level climbs up to it
 
 First-time route: 4 to 5 minutes. Demo route: `G` jumps to the next zone and `B` to the boss entrance, so the boss is reachable in seconds.
 
+### As built
+
+The diagram and table above are the plan. The built level keeps the order and the ideas but the coordinates moved during route testing. These are the values in `WorldLevelBuilder`:
+
+| # | Zone (name in game) | Spawn | What is there |
+|---|---|---|---|
+| 0 | Threshold Glade | `(0, -33.9, -158)` | Start island, corrupt bud that opens the first thorn gate |
+| 1 | The Hollow Bridge | `(0, -33.9, -129)` | Petal platforms (Dream) and thorn walkways (Nightmare) over the mist |
+| 2 | The Weeping Wall | `(0, -30.7, -62)` | Safe wall-run at `z = -44`, landing island at `z = -30.5`, Dream panel at `z = -19` overlapping the Nightmare panel at `z = -10.5` by 5.5 m, arrival island at `z = 3` |
+| 3 | The Gloam Hollow | `(0, -26.9, 7.5)` | Combat ring, centre `(0, -27, 19)`, radius 9.5, three waves, exit thorn gate |
+| 4 | Rootclimb | `(0, -25.5, 38.6)` | 13 steps on a 9.2 m ring around the root pillar at `z = 48`, bounce blossoms, rising gloom from `y = -31` |
+| 5 | The Sleeper's Approach | `(0, -3.1, 68)` | Healing Well island at `z = 72`, two root decks, the big root arch |
+| 6 | The Sleeper | `(0, 0.15, 108.5)` | Arena entrance. Arena centre `(0, 0, 141)`, radius 27. Spirit tree at `z = 217`, skull above `z = 188` |
+
+Changes from the plan: the combat zone has three short waves instead of two, the Weeping Wall has one safe run and one two-panel run with a swap in the middle instead of three runs, the moving ring in the Rootclimb and the hidden nooks were cut.
+
 ## 4. Transition design
 
 A swap is a wave, never a fade. One component, `WorldShift`, owns these shader globals:

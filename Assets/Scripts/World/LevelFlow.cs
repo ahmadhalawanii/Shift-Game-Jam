@@ -70,7 +70,8 @@ public class LevelFlow : MonoBehaviour
             Current = Mathf.Min(saved, zones.Length - 1);
             MoveTo(Current);
         }
-        else if (saved <= 0) WorldShift.NextSpeedScale = firstSwapSpeed;
+        else if (saved > 0) Current = zones.Length - 1;   // boss retry: the encounter already put the player in the arena
+        else WorldShift.NextSpeedScale = firstSwapSpeed;
     }
 
     static bool InArena(Vector3 p)

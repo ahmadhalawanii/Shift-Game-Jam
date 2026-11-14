@@ -212,6 +212,18 @@ public static partial class WorldKit
 
     public static GameObject Scaled(this GameObject g, Vector3 scale) { g.transform.localScale = scale; return g; }
 
+    // Small dressing stops drawing once it is only a few pixels tall, so distant zones stay cheap.
+    // Anything named in keep (a halo, say) is left out and stays visible at any distance.
+    static void Detail(GameObject root, float screenHeight = 0.025f, string keep = null)
+    {
+        var list = new List<Renderer>();
+        foreach (var r in root.GetComponentsInChildren<MeshRenderer>())
+            if (keep == null || r.name != keep) list.Add(r);
+        var group = root.AddComponent<LODGroup>();
+        group.SetLODs(new[] { new LOD(screenHeight, list.ToArray()) });
+        group.RecalculateBounds();
+    }
+
     static GameObject SavePrefab(GameObject root)
     {
         var prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabDir + "/" + root.name + ".prefab");

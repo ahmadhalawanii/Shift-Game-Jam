@@ -6,7 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/Level1.unity
-    guid: 6b59884c0945e4908ab9d22adad6132c
+    path: Assets/Lucid/World/Scenes/LucidWorld.unity
+    guid: 2a19e8b72f45022409814cb86de0bb48
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

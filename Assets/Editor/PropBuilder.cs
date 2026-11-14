@@ -64,6 +64,12 @@ public static class PropBuilder
         return g;
     }
 
+    static void WorldOnly(GameObject g, WorldVisibility w)
+    {
+        var o = g.AddComponent<WorldObject>();
+        o.visibleIn = w;
+    }
+
     static void Save(GameObject root, string name)
     {
         PrefabUtility.SaveAsPrefabAsset(root, PrefabDir + "/" + name + ".prefab");

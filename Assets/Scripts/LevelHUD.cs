@@ -20,6 +20,11 @@ public class LevelHUD : MonoBehaviour
     const float ChipHold = 0.4f, ChipDrain = 5f;
     float chip = 1f, lastHealth = 1f, chipDrainAt;
 
+    // Low-health vignette: corners only, on below 40%, off above 45%, 0.3 s fade, ~1 Hz pulse.
+    Texture2D vignette;
+    bool lowHealth;
+    float vignetteFade;
+
     void Update()
     {
         if (avatar == null) return;
@@ -28,6 +33,24 @@ public class LevelHUD : MonoBehaviour
         lastHealth = h;
         if (h >= chip) chip = h;
         else if (Time.unscaledTime >= chipDrainAt) chip = Mathf.Lerp(chip, h, 1f - Mathf.Exp(-ChipDrain * Time.unscaledDeltaTime));
+        if (h < 0.4f) lowHealth = true;
+        else if (h > 0.45f) lowHealth = false;
+        vignetteFade = Mathf.MoveTowards(vignetteFade, lowHealth ? 1f : 0f, Time.unscaledDeltaTime / 0.3f);
+    }
+
+    void DrawVignette()
+    {
+        if (vignetteFade <= 0.001f || Event.current.type != EventType.Repaint) return;
+        // Clear inside ~60% of the screen, deep red toward the corners. Generated once, drawn stretched.
+        if (vignette == null) vignette = Radial(128, d => Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.62f, 1.42f, d)));
+        float h = avatar != null ? avatar.health : 1f;
+        bool critical = h < 0.2f;
+        float pulse = Mathf.Sin(Time.unscaledTime * 2f * Mathf.PI);
+        float strength = critical ? 0.85f + 0.15f * pulse : 0.6f + 0.1f * pulse;
+        Color keep = GUI.color;
+        GUI.color = new Color(0.55f, 0.02f, 0.04f, vignetteFade * strength).linear;
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), vignette);
+        GUI.color = keep;
     }
 
     void DrawHealthBar()
@@ -103,6 +126,7 @@ public class LevelHUD : MonoBehaviour
             small = new GUIStyle(GUI.skin.label) { fontSize = 15 };
             big.normal.textColor = Color.white; small.normal.textColor = Color.white;
         }
+        DrawVignette();
         string world = WorldState.Instance != null ? WorldState.Instance.Current.ToString().ToUpper() : "";
         var encounter = EclipseEncounter.Instance;
         if (encounter != null)

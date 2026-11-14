@@ -26,7 +26,8 @@ public class CameraLockSettings : ScriptableObject
     public float bigAttackBonus = 0.35f;   // extra pull-back (0..1 of the range) while the boss telegraphs
     [Range(0f, 1f)] public float playerScreenY = 0.3f; // player height on screen (0 = bottom)
     [Range(0f, 1f)] public float bossScreenY = 0.66f;  // boss height on screen when it fits
-    [Range(0f, 1f)] public float bossMaxScreenY = 0.88f; // above this the arm pulls back to keep the boss in frame
+    [Range(0f, 1f)] public float bossMaxScreenY = 0.85f;   // the core never goes above this
+    [Range(0f, 1f)] public float minPlayerScreenY = 0.15f; // the player may drop to here to fit the core, then the arm pulls back
     public float adaptSmooth = 0.35f;      // SmoothDamp time for distance and FOV
 
     [Header("Mouse nudge")]
@@ -37,6 +38,7 @@ public class CameraLockSettings : ScriptableObject
     [Header("Collision")]
     public float probeRadius = 0.3f;
     public float bossClearance = 0.8f;     // extra metres kept from the boss body
+    public float thinProp = 0.2f;          // colliders thinner than this (half-width, m) do not pull the arm in
 
     [Header("Boss events")]
     public float teleportHold = 0.15f;

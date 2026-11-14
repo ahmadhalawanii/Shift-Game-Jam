@@ -46,6 +46,10 @@ public class ThirdPersonCamera : MonoBehaviour
     float lockDist, lockDistVel, lockFov, lockFovVel;
     Vector2 nudge;
     float lockArm = 4.5f, lockArmVel;
+    Vector3 anchor, anchorFrom, lastBossPos;
+    float anchorEaseAt = -99f, phasePullAt = -99f;
+    bool anchorReady, wasTransforming;
+    EclipseVisual bossVisual;
 
     void Awake() { Instance = this; }
     void OnDestroy() { if (Instance == this) Instance = null; }
@@ -108,7 +112,10 @@ public class ThirdPersonCamera : MonoBehaviour
 
         if (trauma > 0f)
         {
-            transform.position += Random.insideUnitSphere * trauma * trauma * 0.6f;
+            // While locked the shake is smaller and mostly sideways, so the bullet plane stays put on screen.
+            Vector3 s = Random.insideUnitSphere * trauma * trauma * 0.6f * Mathf.Lerp(1f, lockCfg.shakeScale, LockWeight);
+            s.y *= Mathf.Lerp(1f, lockCfg.shakeVertical, LockWeight);
+            transform.position += transform.rotation * s;
             trauma = Mathf.Max(0f, trauma - 2.2f * Time.unscaledDeltaTime);
         }
     }
@@ -148,7 +155,7 @@ public class ThirdPersonCamera : MonoBehaviour
         var c = lockCfg;
         float dt = Time.deltaTime;
         Vector3 p = target.position;
-        Vector3 b = boss.transform.position;
+        Vector3 b = BossAnchor(boss);
         Vector3 toBoss = b - p; toBoss.y = 0f;
         float gap = toBoss.magnitude;
         if (gap > 0.1f)
@@ -161,19 +168,28 @@ public class ThirdPersonCamera : MonoBehaviour
         Quaternion arm = Quaternion.Euler(c.pitch, lockYaw, 0f);
         Vector3 chest = p + Vector3.up * c.height;
         Vector3 pivot = chest + Quaternion.Euler(0f, lockYaw, 0f) * Vector3.right * c.shoulder;
-        Vector3 pos = LockCollide(pivot, -(arm * Vector3.forward), lockDist, boss);
-        Vector3 look = Vector3.Lerp(chest, b, c.bossWeight);
+        float pull = PhasePull(boss);
+        Vector3 pos = LockCollide(pivot, -(arm * Vector3.forward), lockDist + pull * c.phasePullDistance, boss);
+        // Frame the boss by its core (the lock-on point), carried along with the eased anchor.
+        if (bossVisual == null || bossVisual.gameObject != boss.gameObject) bossVisual = boss.GetComponent<EclipseVisual>();
+        Vector3 core = b + (bossVisual != null && bossVisual.Core != null ? bossVisual.Core.position - boss.transform.position : Vector3.zero);
+        Vector3 look = Vector3.Lerp(chest, core, c.bossWeight);
 
         // Yaw aims at the weighted look point. Pitch and FOV are solved so the player sits at playerScreenY
         // and the boss at bossScreenY; if that needs more than maxFov, the arm pulls back instead.
-        float aP = Elevation(pos, p + Vector3.up * 0.9f), aB = Elevation(pos, b);
+        float aP = Elevation(pos, p + Vector3.up * 0.9f), aB = Elevation(pos, core);
         float fitFov = (aB - aP) / Mathf.Max(0.05f, c.bossScreenY - c.playerScreenY);
-        float inFrameFov = (aB - aP) / Mathf.Max(0.05f, c.bossMaxScreenY - c.playerScreenY);
-        if (inFrameFov > c.maxFov) wantDist = Mathf.Min(c.farDistance + 4f, wantDist + (inFrameFov - c.maxFov) * 0.15f);
         wantFov = Mathf.Clamp(Mathf.Max(fitFov, wantFov), c.minFov, c.maxFov);
-        lockDist = Mathf.SmoothDamp(lockDist, wantDist, ref lockDistVel, c.adaptSmooth);
         lockFov = Mathf.SmoothDamp(lockFov, wantFov, ref lockFovVel, c.adaptSmooth);
-        float viewPitch = aP - (c.playerScreenY * 2f - 1f) * lockFov * 0.5f;
+        // Exact pitch: put the player at playerScreenY, tilt up if the core would pass bossMaxScreenY,
+        // but never push the player below minPlayerScreenY; past that the arm pulls back.
+        float tanHalf = Mathf.Tan(lockFov * 0.5f * Mathf.Deg2Rad);
+        float pitchForPlayer = aP - Mathf.Atan((c.playerScreenY * 2f - 1f) * tanHalf) * Mathf.Rad2Deg;
+        float pitchForCore = aB - Mathf.Atan((c.bossMaxScreenY * 2f - 1f) * tanHalf) * Mathf.Rad2Deg;
+        float pitchLimit = aP - Mathf.Atan((c.minPlayerScreenY * 2f - 1f) * tanHalf) * Mathf.Rad2Deg;
+        float viewPitch = Mathf.Min(Mathf.Max(pitchForPlayer, pitchForCore), pitchLimit);
+        if (pitchForCore > pitchLimit) wantDist = Mathf.Min(c.farDistance + 4f, wantDist + (pitchForCore - pitchLimit) * 0.25f);
+        lockDist = Mathf.SmoothDamp(lockDist, wantDist, ref lockDistVel, c.adaptSmooth);
         Vector3 flatLook = look - pos; flatLook.y = 0f;
         float viewYaw = flatLook.sqrMagnitude > 0.01f ? Mathf.Atan2(flatLook.x, flatLook.z) * Mathf.Rad2Deg : lockYaw;
         rotation = Quaternion.Euler(-viewPitch, viewYaw, 0f);
@@ -185,10 +201,32 @@ public class ThirdPersonCamera : MonoBehaviour
         nudge = Vector2.Lerp(nudge, Vector2.zero, 1f - Mathf.Exp(-c.nudgeReturn * dt));
         rotation = Quaternion.AngleAxis(nudge.x, Vector3.up) * rotation * Quaternion.AngleAxis(-nudge.y, Vector3.right);
 
-        fov = lockFov;
+        fov = lockFov + pull * c.phasePullFov;
         LookPoint = look;
         LockDebug = $"LOCK  dist {lockDist:F1}  fov {lockFov:F0}  gap {gap:F1}  nudge {nudge.x:F1},{nudge.y:F1}";
         return pos;
+    }
+
+    // Sleepwalk: when the boss jumps, hold the old framing briefly, then ease onto the new position.
+    Vector3 BossAnchor(EclipseBoss boss)
+    {
+        var c = lockCfg;
+        Vector3 now = boss.transform.position;
+        if (!anchorReady) { anchor = lastBossPos = now; anchorReady = true; }
+        if ((now - lastBossPos).sqrMagnitude > 9f) { anchorFrom = anchor; anchorEaseAt = Time.time + c.teleportHold; }
+        lastBossPos = now;
+        float k = (Time.time - anchorEaseAt) / Mathf.Max(0.01f, c.teleportEase);
+        anchor = k < 0f ? anchorFrom : Vector3.Lerp(anchorFrom, now, Mathf.SmoothStep(0f, 1f, k));
+        return anchor;
+    }
+
+    // Phase transition: a smooth 0..1..0 pull back over phasePullBack seconds.
+    float PhasePull(EclipseBoss boss)
+    {
+        if (boss.InTransformation && !wasTransforming) phasePullAt = Time.time;
+        wasTransforming = boss.InTransformation;
+        float k = (Time.time - phasePullAt) / Mathf.Max(0.01f, lockCfg.phasePullBack);
+        return k >= 0f && k <= 1f ? Mathf.Sin(k * Mathf.PI) : 0f;
     }
 
     // Deoccluder: the arm shortens at once when arena geometry is in the way and eases back out.
@@ -200,10 +238,18 @@ public class ThirdPersonCamera : MonoBehaviour
         int hits = Physics.SphereCastNonAlloc(pivot, c.probeRadius, back, obstructionHits, length,
             Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
         for (int i = 0; i < hits; i++)
-            if (!obstructionHits[i].transform.IsChildOf(target))
-                free = Mathf.Min(free, Mathf.Max(0.6f, obstructionHits[i].distance - 0.05f));
+        {
+            var hit = obstructionHits[i];
+            if (hit.transform.IsChildOf(target)) continue;
+            // Thin props (lamp poles) would yank the arm in for a frame or two; the camera passes them instead.
+            Vector3 e = hit.collider.bounds.extents;
+            if (e.x < c.thinProp && e.z < c.thinProp) continue;
+            free = Mathf.Min(free, Mathf.Max(0.6f, hit.distance - 0.05f));
+        }
         lockArm = free < lockArm ? free : Mathf.SmoothDamp(lockArm, free, ref lockArmVel, 0.25f);
         Vector3 pos = pivot + back * lockArm;
+        // A shortened arm rises so the camera looks down over the player instead of into their back.
+        pos.y += (length - lockArm) * 0.3f;
         pos.y = Mathf.Max(pos.y, target.position.y + 0.4f);
 
         Vector3 fromBoss = pos - boss.transform.position;

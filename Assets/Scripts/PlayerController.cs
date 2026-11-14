@@ -84,7 +84,7 @@ public class PlayerController : MonoBehaviour
                 return;
             }
         }
-        ThirdPersonCamera.Shake(0.25f);
+        ThirdPersonCamera.Shake(0.4f); // about 0.2 s; boss slams shake harder
         GameFeel.HitStop(0.04f);
     }
 

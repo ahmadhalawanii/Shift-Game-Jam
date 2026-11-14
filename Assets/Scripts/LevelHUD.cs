@@ -11,6 +11,43 @@ public class LevelHUD : MonoBehaviour
 
     GUIStyle big, small;
     PlayerController pc;
+    Texture2D ring;
+    EclipseVisual bossVisual;
+
+    // Square texture whose alpha is f(distance from centre, 0 at centre, 1 at the edge midpoints).
+    static Texture2D Radial(int size, System.Func<float, float> alpha)
+    {
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        var px = new Color32[size * size];
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float dx = (x + 0.5f) / size * 2f - 1f, dy = (y + 0.5f) / size * 2f - 1f;
+                px[y * size + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(alpha(Mathf.Sqrt(dx * dx + dy * dy))));
+            }
+        tex.SetPixels32(px);
+        tex.Apply();
+        return tex;
+    }
+
+    // Thin lock-on ring on the boss core. Smaller with distance, fainter while the boss is armoured.
+    void DrawReticle(EclipseBoss boss)
+    {
+        var tpc = ThirdPersonCamera.Instance;
+        var cam = Camera.main;
+        if (tpc == null || tpc.LockWeight <= 0f || cam == null) return;
+        if (bossVisual == null) bossVisual = boss.GetComponent<EclipseVisual>();
+        Vector3 core = bossVisual != null && bossVisual.Core != null ? bossVisual.Core.position : boss.transform.position;
+        Vector3 sp = cam.WorldToScreenPoint(core);
+        if (sp.z <= 0f) return;
+        if (ring == null) ring = Radial(64, d => 1f - Mathf.Abs(d - 0.85f) / 0.08f);
+        float size = Mathf.Clamp(600f / sp.z, 22f, 64f) * Screen.height / 1080f;
+        float visible = Mathf.Clamp01(boss.transform.localScale.x / 1.25f);
+        Color keep = GUI.color;
+        GUI.color = new Color(0.85f, 0.95f, 1f, tpc.LockWeight * visible * (boss.Sealed ? 0.4f : 0.9f));
+        GUI.DrawTexture(new Rect(sp.x - size / 2f, Screen.height - sp.y - size / 2f, size, size), ring);
+        GUI.color = keep;
+    }
 
     void Awake() { Instance = this; }
     void Start()
@@ -39,6 +76,7 @@ public class LevelHUD : MonoBehaviour
         if (encounter != null)
         {
             var boss = encounter.Boss;
+            if (boss != null) DrawReticle(boss);
             if (boss != null && boss.Engaged)
             {
                 float width = Mathf.Min(600, Screen.width - 40);
@@ -101,7 +139,7 @@ public class LevelHUD : MonoBehaviour
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         GUI.Label(new Rect(20, Screen.height - 120, Screen.width - 40, 24), "DEBUG  1/2/3 phase   N swap   T teleport   C cycle attacks   K kill   H hitboxes   L camera lock", small);
         var tpc = ThirdPersonCamera.Instance;
-        if (tpc != null && tpc.LockWeight > 0f) GUI.Label(new Rect(Screen.width - 520, 100, 500, 24), tpc.LockDebug, small);
+        if (tpc != null && tpc.LockWeight > 0f) GUI.Label(new Rect(20, 172, 600, 24), tpc.LockDebug, small);
 #endif
         GUI.Label(new Rect(20, Screen.height - 64, Screen.width - 40, 24), Hint(), small);
         GUI.Label(new Rect(20, Screen.height - 36, Screen.width - 40, 24), "WASD Move   Shift Dash   Space Jump   LMB Strike   RMB Charge   Q Shift World   E Weave   Tab Focus", small);

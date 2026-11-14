@@ -23,6 +23,7 @@ public sealed class EclipseVisual : MonoBehaviour
     float charge;
     // Upgrade: counter-rotating blade rings, floating crystal core, orbiting shards, sky eclipse ring.
     Transform bladeRingA, bladeRingB, crystal, shardOrbit, eclipseRing;
+    public Transform Core => crystal;
     readonly Transform[] shards = new Transform[10];
     Material bladeGlow, ringGlow;
     float flash, snap;

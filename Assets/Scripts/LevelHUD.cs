@@ -99,7 +99,9 @@ public class LevelHUD : MonoBehaviour
             }
         }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        GUI.Label(new Rect(20, Screen.height - 120, Screen.width - 40, 24), "DEBUG  1/2/3 phase   N swap   T teleport   C cycle attacks   K kill   H hitboxes", small);
+        GUI.Label(new Rect(20, Screen.height - 120, Screen.width - 40, 24), "DEBUG  1/2/3 phase   N swap   T teleport   C cycle attacks   K kill   H hitboxes   L camera lock", small);
+        var tpc = ThirdPersonCamera.Instance;
+        if (tpc != null && tpc.LockWeight > 0f) GUI.Label(new Rect(Screen.width - 520, 100, 500, 24), tpc.LockDebug, small);
 #endif
         GUI.Label(new Rect(20, Screen.height - 64, Screen.width - 40, 24), Hint(), small);
         GUI.Label(new Rect(20, Screen.height - 36, Screen.width - 40, 24), "WASD Move   Shift Dash   Space Jump   LMB Strike   RMB Charge   Q Shift World   E Weave   Tab Focus", small);

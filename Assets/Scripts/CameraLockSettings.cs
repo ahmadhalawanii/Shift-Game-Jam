@@ -24,7 +24,9 @@ public class CameraLockSettings : ScriptableObject
     public float minFov = 60f;
     public float maxFov = 75f;
     public float bigAttackBonus = 0.35f;   // extra pull-back (0..1 of the range) while the boss telegraphs
-    public float frameMargin = 6f;         // degrees kept between a subject and the screen edge
+    [Range(0f, 1f)] public float playerScreenY = 0.3f; // player height on screen (0 = bottom)
+    [Range(0f, 1f)] public float bossScreenY = 0.66f;  // boss height on screen when it fits
+    [Range(0f, 1f)] public float bossMaxScreenY = 0.88f; // above this the arm pulls back to keep the boss in frame
     public float adaptSmooth = 0.35f;      // SmoothDamp time for distance and FOV
 
     [Header("Mouse nudge")]

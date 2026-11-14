@@ -28,6 +28,7 @@ public class ThirdPersonCamera : MonoBehaviour
     public static void EngageLock() { if (Instance != null && !EclipseEncounter.Finished) Instance.locked = true; }
     public float LockWeight { get; private set; }
     public string LockDebug { get; private set; }
+    public Vector3 LookPoint { get; private set; }
 
     float yaw;
     float pitch = 7f;
@@ -42,6 +43,8 @@ public class ThirdPersonCamera : MonoBehaviour
     bool locked;
     float lockBlend;
     float lockYaw, lockYawVel;
+    float lockDist, lockDistVel, lockFov, lockFovVel;
+    Vector2 nudge;
 
     void Awake() { Instance = this; }
     void OnDestroy() { if (Instance == this) Instance = null; }
@@ -53,6 +56,8 @@ public class ThirdPersonCamera : MonoBehaviour
         lockCfg = CameraLockSettings.Load();
         freePos = transform.position;
         freeFov = cam != null ? cam.fieldOfView : baseFov;
+        lockDist = lockCfg.distance;
+        lockFov = lockCfg.minFov;
         if (target != null)
         {
             yaw = target.eulerAngles.y;
@@ -136,23 +141,68 @@ public class ThirdPersonCamera : MonoBehaviour
     }
 
     // Lock-on: the arm sits on the boss-player line behind the player and looks at a point weighted toward the boss.
+    // Distance and FOV open with the gap and during telegraphs, and open further if either subject nears the frame edge.
     Vector3 LockPose(EclipseBoss boss, out Quaternion rotation, out float fov)
     {
         var c = lockCfg;
+        float dt = Time.deltaTime;
         Vector3 p = target.position;
         Vector3 b = boss.transform.position;
         Vector3 toBoss = b - p; toBoss.y = 0f;
-        if (toBoss.sqrMagnitude > 0.01f)
+        float gap = toBoss.magnitude;
+        if (gap > 0.1f)
             lockYaw = Mathf.SmoothDampAngle(lockYaw, Mathf.Atan2(toBoss.x, toBoss.z) * Mathf.Rad2Deg, ref lockYawVel, c.yawSmooth);
 
+        float wide = Mathf.Clamp01(Mathf.InverseLerp(c.nearGap, c.farGap, gap) + (boss.Charging ? c.bigAttackBonus : 0f));
+        float wantDist = Mathf.Lerp(c.distance, c.farDistance, wide);
+        float wantFov = Mathf.Lerp(c.minFov, c.maxFov, wide);
+
         Quaternion arm = Quaternion.Euler(c.pitch, lockYaw, 0f);
-        Vector3 pivot = p + Vector3.up * c.height + Quaternion.Euler(0f, lockYaw, 0f) * Vector3.right * c.shoulder;
-        Vector3 pos = pivot - arm * Vector3.forward * c.distance;
-        Vector3 look = Vector3.Lerp(p + Vector3.up * c.height, b, c.bossWeight);
-        rotation = Quaternion.LookRotation(look - pos);
-        fov = c.minFov;
-        LockDebug = $"LOCK  dist {c.distance:F1}  fov {fov:F0}  gap {toBoss.magnitude:F1}";
+        Vector3 chest = p + Vector3.up * c.height;
+        Vector3 pivot = chest + Quaternion.Euler(0f, lockYaw, 0f) * Vector3.right * c.shoulder;
+        Vector3 pos = pivot - arm * Vector3.forward * lockDist;
+        Vector3 look = Vector3.Lerp(chest, b, c.bossWeight);
+
+        // Yaw aims at the weighted look point. Pitch and FOV are solved so the player sits at playerScreenY
+        // and the boss at bossScreenY; if that needs more than maxFov, the arm pulls back instead.
+        float aP = Elevation(pos, p + Vector3.up * 0.9f), aB = Elevation(pos, b);
+        float fitFov = (aB - aP) / Mathf.Max(0.05f, c.bossScreenY - c.playerScreenY);
+        float inFrameFov = (aB - aP) / Mathf.Max(0.05f, c.bossMaxScreenY - c.playerScreenY);
+        if (inFrameFov > c.maxFov) wantDist = Mathf.Min(c.farDistance + 4f, wantDist + (inFrameFov - c.maxFov) * 0.15f);
+        wantFov = Mathf.Clamp(Mathf.Max(fitFov, wantFov), c.minFov, c.maxFov);
+        lockDist = Mathf.SmoothDamp(lockDist, wantDist, ref lockDistVel, c.adaptSmooth);
+        lockFov = Mathf.SmoothDamp(lockFov, wantFov, ref lockFovVel, c.adaptSmooth);
+        float viewPitch = aP - (c.playerScreenY * 2f - 1f) * lockFov * 0.5f;
+        Vector3 flatLook = look - pos; flatLook.y = 0f;
+        float viewYaw = flatLook.sqrMagnitude > 0.01f ? Mathf.Atan2(flatLook.x, flatLook.z) * Mathf.Rad2Deg : lockYaw;
+        rotation = Quaternion.Euler(-viewPitch, viewYaw, 0f);
+
+        // Mouse only nudges the view a few degrees and springs back; it never moves the arm.
+        var mouse = Mouse.current;
+        if (mouse != null && !EclipseEncounter.Finished) nudge += mouse.delta.ReadValue() * c.nudgeSensitivity;
+        nudge = Vector2.ClampMagnitude(nudge, c.nudgeMax);
+        nudge = Vector2.Lerp(nudge, Vector2.zero, 1f - Mathf.Exp(-c.nudgeReturn * dt));
+        rotation = Quaternion.AngleAxis(nudge.x, Vector3.up) * rotation * Quaternion.AngleAxis(-nudge.y, Vector3.right);
+
+        fov = lockFov;
+        LookPoint = look;
+        LockDebug = $"LOCK  dist {lockDist:F1}  fov {lockFov:F0}  gap {gap:F1}  nudge {nudge.x:F1},{nudge.y:F1}";
         return pos;
+    }
+
+    // Degrees above the horizontal from one point to another.
+    static float Elevation(Vector3 from, Vector3 to)
+    {
+        Vector3 d = to - from;
+        return Mathf.Atan2(d.y, Mathf.Max(0.01f, new Vector2(d.x, d.z).magnitude)) * Mathf.Rad2Deg;
+    }
+
+    void OnDrawGizmos()
+    {
+        if (LockWeight <= 0f) return;
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(LookPoint, 0.4f);
+        if (target != null) Gizmos.DrawLine(target.position + Vector3.up * lockCfg.height, LookPoint);
     }
 
     // Editor and development builds: L toggles the lock for testing.

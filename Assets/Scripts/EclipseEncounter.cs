@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
-// Installed by the existing HUD so saved Level1 scenes need no regeneration.
+// Installed by the existing HUD.
 public class EclipseEncounter : MonoBehaviour
 {
     public static EclipseEncounter Instance { get; private set; }

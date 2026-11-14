@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-// Helpers shared by the editor builders (PropBuilder, NatureBuilder, CombatBuilder, DreamBuilder, NightmareBuilder, MemoryBuilder).
+// Helpers shared by the editor builders (CombatBuilder, MemoryBuilder, the World builders).
 public static class BuildKit
 {
     // Creates the folder if it is missing. The parent folder must already exist.

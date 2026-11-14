@@ -3,7 +3,7 @@ using UnityEngine;
 
 // Trigger volume covering the arena (its edge is the entrance). The first time the player's collider
 // enters it, the boss lock-on camera engages and OnFightStart fires for the boss bar and music.
-// Created at runtime by EclipseEncounter, so Level1 needs no regeneration.
+// Created at runtime by EclipseEncounter.
 public class BossArenaTrigger : MonoBehaviour
 {
     public static event Action OnFightStart;

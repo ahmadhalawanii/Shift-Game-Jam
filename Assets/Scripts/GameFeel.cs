@@ -13,7 +13,7 @@ public static class CombatAssets
         if (!cache.TryGetValue(name, out g) || g == null)
         {
             g = Resources.Load<GameObject>("Combat/" + name);
-            if (g == null) Debug.LogError("Missing prefab Resources/Combat/" + name + ". Run menu Lucid > Build Props And Test Scene.");
+            if (g == null) Debug.LogError("Missing prefab Resources/Combat/" + name + ". Run menu Lucid > Build Combat And Player Props.");
             cache[name] = g;
         }
         return g;

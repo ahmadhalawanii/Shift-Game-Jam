@@ -17,10 +17,10 @@ public class LucidCombatHUD : MonoBehaviour
     MemoryAvatar avatar;
     BalanceSheet sheet;
     Font font;
-    Image health, chip, power, dread, bossFill, heart;
+    Image health, chip, power, dread, bossFill, wardBar;
     Image[] weaponBacks = new Image[3], notches = new Image[2], charges = new Image[2];
     GameObject[] armourDashes = new GameObject[31];
-    Text healthLabel, dreadLabel, ammo, weaponTitle, notice, bossName, swapLabel, popup;
+    Text healthLabel, healthValue, dreadLabel, ammo, weaponTitle, notice, bossName, swapLabel, popup;
     Text[] weaponLabels = new Text[3], abilityLabels = new Text[4];
     LucidRing ward, reload, swap, charge, incoming;
     LucidRing[] cooldowns = new LucidRing[4], tags = new LucidRing[3];
@@ -33,23 +33,28 @@ public class LucidCombatHUD : MonoBehaviour
     {
         combat = GetComponent<PlayerCombat>(); dream = combat.Dream; abilities = GetComponent<NightmareAbilities>();
         pc = GetComponent<PlayerController>(); avatar = GetComponentInChildren<MemoryAvatar>(); sheet = BalanceSheet.Load();
-        font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        font = LucidUI.Font;
         view = Camera.main;
         var go = new GameObject("Lucid Combat HUD", typeof(Canvas), typeof(CanvasScaler)); go.transform.SetParent(transform, false);
         canvas = go.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 15;
         var scaler = go.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1600,900); scaler.matchWidthOrHeight = .5f;
         root = go.GetComponent<RectTransform>();
         var left = Group("Vital signs", new Vector2(0,0), new Vector2(36,38), new Vector2(300,160));
-        Panel(left, new Vector2(0,0), new Vector2(300,155));
-        heart = Box(left, new Vector2(13,85), new Vector2(16,16), new Color(1f,.3f,.42f)); heart.rectTransform.localRotation = Quaternion.Euler(0,0,45);
-        healthLabel = Label(left,"HEALTH",new Vector2(42,112),new Vector2(240,25),16);
-        Box(left,new Vector2(42,93),new Vector2(228,8),new Color(.12f,.07f,.13f));
-        chip = Bar(left,new Vector2(42,93),228,8,new Color(1f,.78f,.85f)); health = Bar(left,new Vector2(42,93),228,8,new Color(.9f,.16f,.25f));
-        ward = Ring(left,new Vector2(21,93),44,3,Color.cyan);
-        Label(left,"POWER",new Vector2(18,57),new Vector2(75,18),11);
-        power = Bar(left,new Vector2(95,62),175,4,new Color(.7f,.8f,1f));
-        dreadLabel = Label(left,"DREAD",new Vector2(18,26),new Vector2(125,20),11);
-        dread = Bar(left,new Vector2(145,32),125,4,ember);
+        Panel(left, new Vector2(0,0), new Vector2(300,160));
+        // Health first and biggest: the word, the number, and a thick bar with quarter marks.
+        healthLabel = Label(left,"Health",new Vector2(18,122),new Vector2(150,30),20);
+        healthValue = Label(left,"100",new Vector2(150,118),new Vector2(134,40),34); healthValue.alignment=TextAnchor.MiddleRight; healthValue.fontStyle=FontStyle.Bold;
+        Box(left,new Vector2(16,86),new Vector2(268,26),new Color(.01f,.005f,.02f,.95f));
+        Box(left,new Vector2(18,88),new Vector2(264,22),new Color(.16f,.08f,.12f));
+        chip = Bar(left,new Vector2(18,88),264,22,LucidUI.Chip); health = Bar(left,new Vector2(18,88),264,22,LucidUI.HealthRed);
+        for(int q=1;q<4;q++) Box(left,new Vector2(18+264*q/4f-1,88),new Vector2(2,22),new Color(0,0,0,.35f));
+        ward = Ring(left,new Vector2(-200,-200),2,1,Color.clear); ward.enabled=false;
+        Label(left,"Ward",new Vector2(18,54),new Vector2(70,22),15);
+        Box(left,new Vector2(80,60),new Vector2(204,7),new Color(.1f,.08f,.16f)); wardBar = Bar(left,new Vector2(80,60),204,7,LucidUI.Dream);
+        Label(left,"Power",new Vector2(18,30),new Vector2(70,22),15);
+        Box(left,new Vector2(80,36),new Vector2(204,7),new Color(.1f,.08f,.16f)); power = Bar(left,new Vector2(80,36),204,7,cream);
+        dreadLabel = Label(left,"Dread",new Vector2(18,6),new Vector2(130,22),15);
+        Box(left,new Vector2(150,12),new Vector2(134,7),new Color(.1f,.08f,.16f)); dread = Bar(left,new Vector2(150,12),134,7,ember);
         var right = Group("Weapons",new Vector2(1,0),new Vector2(-36,38),new Vector2(320,160));
         Panel(right,Vector2.zero,new Vector2(320,155));
         weaponTitle = Label(right,"",new Vector2(18,116),new Vector2(270,25),16);
@@ -58,12 +63,16 @@ public class LucidCombatHUD : MonoBehaviour
         for(int i=0;i<3;i++)
         {
             weaponBacks[i] = Box(right,new Vector2(16+i*100,14),new Vector2(90,48),new Color(.15f,.12f,.23f,.85f));
+            LucidUI.ShadowFor(weaponBacks[i].rectTransform,.5f,12f,5f);
             Ring(weaponBacks[i].rectTransform,new Vector2(17,27),16+i*3,2,cream).Fill=.68f;
             weaponLabels[i] = Label(weaponBacks[i].rectTransform,"",new Vector2(32,5),new Vector2(58,36),10);
         }
         var bottom = Group("Abilities",new Vector2(.5f,0),new Vector2(0,38),new Vector2(400,100));
         for(int i=0;i<4;i++)
         {
+            // Dark disc with a soft drop shadow so each ability reads as a widget over any background.
+            var disc = Ring(bottom,new Vector2(50+i*100,58),50,25,new Color(.02f,.03f,.06f,.72f));
+            LucidUI.ShadowFor(disc.rectTransform,.55f,16f,6f);
             cooldowns[i] = Ring(bottom,new Vector2(50+i*100,58),44,3,cream);
             Ring(bottom,new Vector2(50+i*100,58),29,1,new Color(.65f,.75f,1f,.35f));
             abilityLabels[i] = Label(bottom,"",new Vector2(i*100,0),new Vector2(100,37),11); abilityLabels[i].alignment=TextAnchor.MiddleCenter;
@@ -71,6 +80,8 @@ public class LucidCombatHUD : MonoBehaviour
         for(int i=0;i<2;i++) charges[i] = Box(bottom,new Vector2(40+i*13,54),new Vector2(7,7),cream);
         bossGroup = Group("Encounter",new Vector2(.5f,1),new Vector2(0,-25),new Vector2(620,118)).gameObject;
         var top = (RectTransform)bossGroup.transform;
+        var bossPlate = Box(top,new Vector2(-24,4),new Vector2(668,70),new Color(.02f,.03f,.06f,.55f));
+        LucidUI.ShadowFor(bossPlate.rectTransform,.45f,26f,8f);
         swap = Ring(top,new Vector2(310,94),34,3,cream);
         swapLabel = Label(top,"",new Vector2(335,82),new Vector2(220,24),12);
         bossName = Label(top,"",new Vector2(0,45),new Vector2(620,25),16); bossName.alignment=TextAnchor.MiddleCenter;
@@ -99,12 +110,15 @@ public class LucidCombatHUD : MonoBehaviour
     { var x=new GameObject("Line",typeof(Image)).GetComponent<Image>(); Place(x.rectTransform,parent,position,size); x.color=color; x.raycastTarget=false; return x; }
     Image Bar(RectTransform parent,Vector2 position,float width,float height,Color color) => Box(parent,position,new Vector2(width,height),color);
     void Panel(RectTransform p,Vector2 pos,Vector2 size)
-    { Box(p,pos,size,new Color(.035f,.035f,.07f,.72f)); Box(p,pos+new Vector2(0,size.y),new Vector2(size.x,1),new Color(.65f,.72f,1f,.35f)); }
+    {
+        var plate=Box(p,pos,size,new Color(.025f,.03f,.06f,.74f));
+        LucidUI.ShadowFor(plate.rectTransform,.6f,26f,9f);
+    }
     Text Label(RectTransform parent,string text,Vector2 pos,Vector2 size,int fontSize)
     {
-        var t=new GameObject("Label",typeof(Text),typeof(Outline)).GetComponent<Text>(); Place(t.rectTransform,parent,pos,size);
+        var t=new GameObject("Label",typeof(Text)).GetComponent<Text>(); Place(t.rectTransform,parent,pos,size);
         t.font=font;t.fontSize=fontSize;t.text=text;t.color=cream;t.raycastTarget=false;
-        t.GetComponent<Outline>().effectColor=new Color(0,0,0,.65f); return t;
+        LucidUI.Style(t); return t;
     }
     LucidRing Ring(RectTransform parent,Vector2 center,float size,float width,Color tint)
     { var r=new GameObject("Ring",typeof(LucidRing)).GetComponent<LucidRing>(); Place(r.rectTransform,parent,center-Vector2.one*size/2,Vector2.one*size);r.thickness=width;r.color=tint;r.raycastTarget=false;return r; }
@@ -114,10 +128,10 @@ public class LucidCombatHUD : MonoBehaviour
         bool night=WorldState.CurrentOrDream==World.Nightmare; wasNight=night;wasPad=LucidInput.UsingGamepad;
         bindingVersion = LucidInput.BindingVersion;
         InputAction[] actions={LucidInput.Dash,LucidInput.Ability1,LucidInput.Ability2,night?LucidInput.Overdrive:LucidInput.Aim};
-        string[] names=night?new[]{"DASH","BURST","SHADOWSTEP","OVERDRIVE"}:new[]{"DASH","PULSE","BLOOM","WARD"};
+        string[] names=night?new[]{"Dash","Burst","Shadowstep","Overdrive"}:new[]{"Dash","Pulse","Bloom","Ward"};
         for(int i=0;i<4;i++) abilityLabels[i].text=LucidInput.Label(actions[i])+"\n"+names[i];
         InputAction[] selects={LucidInput.Weapon1,LucidInput.Weapon2,LucidInput.Weapon3};
-        string[] guns={"THORN","GLOAM","WRAITH"};
+        string[] guns={"Thorn","Gloam","Wraith"};
         for(int i=0;i<3;i++) weaponLabels[i].text=(wasPad?LucidInput.Label(LucidInput.NextWeapon):LucidInput.Label(selects[i]))+"\n"+guns[i];
     }
     void Update()
@@ -140,9 +154,18 @@ public class LucidCombatHUD : MonoBehaviour
         float h=avatar!=null?avatar.health:1f;
         if(h<lastHealth){chipAt=Time.unscaledTime+.4f;chipValue=Mathf.Max(chipValue,lastHealth);} lastHealth=h;
         if(h>chipValue)chipValue=h;else if(Time.unscaledTime>chipAt)chipValue=Mathf.MoveTowards(chipValue,h,Time.unscaledDeltaTime*.5f);
-        Fill(health,228,h);Fill(chip,228,chipValue);Fill(power,175,combat.Power/sheet.maxPower);Fill(dread,125,combat.Dread);
-        heart.rectTransform.localScale=Vector3.one*(1f+.12f*Mathf.Sin(Time.unscaledTime*(h<.3f?15f:6f)));
-        ward.Fill=dream.Ward/sheet.wardMax;ward.color=dream.Broken?Color.Lerp(Color.red,Color.white,Mathf.PingPong(Time.time*6,1)):new Color(.6f,.9f,1f);
+        Fill(health,264,h);Fill(chip,264,chipValue);Fill(power,204,combat.Power/sheet.maxPower);Fill(dread,134,combat.Dread);
+        // Animated health bar: it swells, flashes white and rattles on a hit, and beats faster the lower it gets.
+        float punch=Mathf.Clamp01((chipAt-Time.unscaledTime)/.4f);
+        float beat=h<.4f?Mathf.Pow(Mathf.Abs(Mathf.Sin(Time.unscaledTime*Mathf.Lerp(9f,4f,h/.4f))),6f):0f;
+        health.rectTransform.localScale=new Vector3(1f,1f+punch*1.6f+beat*.5f,1f);chip.rectTransform.localScale=health.rectTransform.localScale;
+        health.color=Color.Lerp(Color.Lerp(new Color(.9f,.16f,.25f),new Color(1f,.45f,.3f),beat),Color.white,punch);
+        healthLabel.rectTransform.localScale=Vector3.one*(1f+punch*.35f+beat*.08f);
+        healthLabel.rectTransform.localRotation=Quaternion.Euler(0,0,Mathf.Sin(Time.unscaledTime*70f)*6f*punch);
+        Fill(wardBar,204,dream.Ward/sheet.wardMax);
+        wardBar.color=dream.Broken?Color.Lerp(LucidUI.HealthRed,Color.white,Mathf.PingPong(Time.time*6,1)):LucidUI.Dream;
+        // Low health: the number turns red and pulses so it is noticed without looking away from the fight.
+        healthValue.color=h<.3f?Color.Lerp(LucidUI.HealthRed,LucidUI.Chip,Mathf.PingPong(Time.unscaledTime*3f,1f)):cream;
         cooldowns[0].Fill=Mathf.Clamp01(pc.DashCharges/2f);
         cooldowns[1].Fill=night?abilities.BurstReady01:dream.PulseReady01;
         cooldowns[2].Fill=night?abilities.StepReady01:dream.BloomReady01;
@@ -162,11 +185,12 @@ public class LucidCombatHUD : MonoBehaviour
             for(int i=0;i<armourDashes.Length;i++) if(armourDashes[i].activeSelf==night) armourDashes[i].SetActive(!night);
         }
         if(Time.unscaledTime<labelAt)return;labelAt=Time.unscaledTime+.1f;
-        healthLabel.text="HEALTH  "+Mathf.RoundToInt(h*100);dreadLabel.text="DREAD  ×"+combat.DreadMultiplier.ToString("F2");
-        weaponTitle.text=night?w.Current.name.ToUpper():"LUMEN BOW  /  "+(boss!=null&&boss.WeakPoints!=null?boss.WeakPoints.TagCount:0)+" TAGS";
-        ammo.text=!night?"DRAW • TAG • SHIFT":w.Current.kind==WeaponKind.Chain?(w.Overheated?"COOLING":"HEAT "+Mathf.RoundToInt(w.Heat01*100)+"%"):w.Mag(w.Index)+" / ∞"+(w.Reloading?"  RELOADING":"");
+        healthValue.text=Mathf.RoundToInt(h*100).ToString();dreadLabel.text="Dread  x"+combat.DreadMultiplier.ToString("F2");
+        int tagCount=boss!=null&&boss.WeakPoints!=null?boss.WeakPoints.TagCount:0;
+        weaponTitle.text=night?w.Current.name:"Lumen Bow, "+tagCount+(tagCount==1?" mark":" marks");
+        ammo.text=!night?"Hold to draw":w.Current.kind==WeaponKind.Chain?(w.Overheated?"Cooling down":"Heat "+Mathf.RoundToInt(w.Heat01*100)+"%"):w.Reloading?"Reloading":w.Mag(w.Index)+" left";
         ammo.color=night&&w.Current.magazine>0&&w.Mag(w.Index)==0?Color.Lerp(ember,Color.white,Mathf.PingPong(Time.time*3,1)):tint;
         notice.text=EclipseEncounter.Instance!=null?EclipseEncounter.Instance.Notice:"";
-        if(boss!=null){bossName.text="THE SLEEPER / PHASE "+boss.Phase+" / "+(night?"EXPOSED":"ARMOURED");swapLabel.text=LucidInput.Label(LucidInput.SwapStance)+"  "+boss.SwapSeconds.ToString("F1")+"s";}
+        if(boss!=null){bossName.text="The Sleeper, phase "+boss.Phase+(night?"":" (armoured)");swapLabel.text=LucidInput.Label(LucidInput.SwapStance)+"  "+boss.SwapSeconds.ToString("F1")+"s";}
     }
 }

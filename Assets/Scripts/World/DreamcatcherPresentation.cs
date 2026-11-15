@@ -178,7 +178,8 @@ public sealed class DreamcatcherPresentation : MonoBehaviour
             if (elapsed < 1.6f)
             {
                 ShotCue(0, ending ? "ending_bind_impact" : "fusion_mask_impact");
-                Aim(core + axis * 7f + side * (1.5f + elapsed) + Vector3.up, core, 47f);
+                // Pulled back from 7 m: the Colossus head is deeper than the old blossom, so 7 m sat inside its face.
+                Aim(core + axis * 15f + side * (3f + elapsed * 1.5f) + Vector3.up * 0.5f, core + Vector3.up * 0.5f, 47f);
             }
             else if (ending && elapsed >= 3.5f && elapsed < 6f)
             {
@@ -359,18 +360,42 @@ public sealed class DreamcatcherPresentation : MonoBehaviour
     void ShowTitle()
     {
         ClearPanel();
-        AddText("L U C I D", 78, 108, ivory);
-        AddText("B E T W E E N   T W O   W O R L D S", 14, 58, accent);
-        AddButton("PLAY", StartOpening, 58, true);
-        AddButton("HOW TO PLAY", ShowHelp);
-        AddButton("SETTINGS", () => ShowSettings(ShowTitle));
-        AddButton("CREDITS", () => ShowCredits(ShowTitle));
-        AddText("SHIFT GAME JAM 2026", 12, 58, new Color(0.64f, 0.71f, 0.78f));
+        AddText("Lucid", 104, 112, LucidUI.Cream, 0f, true);
+        var tagline = AddText("between two worlds", 24, 44, accent, 0f, true);
+        tagline.fontStyle = FontStyle.Italic;
+        AddRule(accent, 0f);
+        AddButton("Play", StartOpening, 52, true);
+        AddButton("How to play", ShowHelp);
+        AddButton("Controls", () => ShowControls(ShowTitle));
+        AddButton("Settings", () => ShowSettings(ShowTitle));
+        AddButton("Credits", () => ShowCredits(ShowTitle));
+        AddText("Made for the SHIFT Game Jam 2026", 14, 52, LucidUI.Alpha(LucidUI.Cream, .55f));
     }
 
-    void ShowHelp()
+    void ShowHelp() => ShowTutorial(ShowTitle);
+
+    // The field guide sits over the menu; Esc (handled above through inPanel) or DONE returns to it.
+    void ShowTutorial(Action back)
     {
-        ShowControls(ShowTitle);
+        ClearPanel();
+        inPanel = true;
+        LucidTutorial.Open(canvas.transform, events, back);
+    }
+
+    // Spacer between the title and the options.
+    void AddRule(Color color, float width)
+    {
+        var row = new GameObject("Gap", typeof(RectTransform), typeof(UnityEngine.UI.LayoutElement));
+        row.transform.SetParent(panel, false);
+        row.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 18f;
+    }
+
+    // Menu strings are written in capitals in the code; on screen they read in normal case.
+    static string Nice(string s)
+    {
+        if (string.IsNullOrEmpty(s) || s.ToUpperInvariant() != s) return s;
+        var t = System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(s.ToLowerInvariant());
+        return t.Replace("Lmb", "LMB").Replace("Rmb", "RMB").Replace(" To ", " to ").Replace(" Of ", " of ").Replace(" The ", " the ");
     }
     void ShowControls(Action back)
     {
@@ -499,9 +524,10 @@ public sealed class DreamcatcherPresentation : MonoBehaviour
     void ShowPause()
     {
         ClearPanel(true);
-        AddText("PAUSED", 48, 72, ivory);
-        AddButton("RESUME", Resume, 60, true);
+        AddText("Paused", 46, 72, LucidUI.Cream, 0f, true);
+        AddButton("RESUME", Resume, 52, true);
         AddButton("RESTART CHECKPOINT", () => Load(true));
+        AddButton("HOW TO PLAY", () => ShowTutorial(ShowPause));
         AddButton("SETTINGS", () => ShowSettings(ShowPause));
         AddButton("CONTROLS", () => ShowControls(ShowPause));
         AddButton("MAIN MENU", () => Load(false));
@@ -534,7 +560,7 @@ public sealed class DreamcatcherPresentation : MonoBehaviour
 
     void BuildCanvas()
     {
-        font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        font = LucidUI.Font;
         var ui = new GameObject("Dreamcatcher Canvas", typeof(Canvas), typeof(UnityEngine.UI.CanvasScaler),
             typeof(UnityEngine.UI.GraphicRaycaster));
         ui.transform.SetParent(transform, false);
@@ -580,6 +606,7 @@ public sealed class DreamcatcherPresentation : MonoBehaviour
 
     void ClearPanel(bool backdrop = false)
     {
+        LucidTutorial.CloseActive();
         if (panel != null)
         {
             panel.gameObject.SetActive(false);
@@ -595,32 +622,38 @@ public sealed class DreamcatcherPresentation : MonoBehaviour
         panel.anchoredPosition = new Vector2(82f, 0f);
         panel.sizeDelta = new Vector2(516f, 0f);
         var layout = root.GetComponent<UnityEngine.UI.VerticalLayoutGroup>();
-        layout.spacing = 10f;
-        layout.padding = new RectOffset(22, 22, 15, 15);
+        layout.spacing = 8f;
+        layout.padding = new RectOffset(backdrop ? 30 : 22, 22, backdrop ? 26 : 15, backdrop ? 26 : 15);
         layout.childForceExpandHeight = false;
         root.GetComponent<UnityEngine.UI.ContentSizeFitter>().verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
         var background = root.GetComponent<UnityEngine.UI.Image>();
-        background.color = new Color(0.025f, 0.05f, 0.09f, backdrop ? 0.88f : 0f);
+        background.color = Color.clear;
         background.raycastTarget = false;
+        if (backdrop)
+        {
+            // Plate with a soft drop shadow, hairline frame and corner ticks.
+            // A plain plate in the HUD's own panel colour, lifted off the scene by a soft shadow.
+            var plate = LucidUI.Stretch(panel, "Plate", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, LucidUI.Alpha(LucidUI.Panel, 0.92f));
+            LucidUI.ShadowFor(plate.rectTransform, 0.7f, 30f, 12f);
+        }
         panelGroup = root.GetComponent<CanvasGroup>();
     }
 
-    UnityEngine.UI.Text AddText(string value, int size, int height, Color color)
+    UnityEngine.UI.Text AddText(string value, int size, int height, Color color, float tracking = 0f, bool display = false)
     {
         var go = new GameObject("Label", typeof(UnityEngine.UI.Text), typeof(UnityEngine.UI.LayoutElement));
         go.transform.SetParent(panel, false);
         go.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = height;
         var label = go.GetComponent<UnityEngine.UI.Text>();
-        label.font = font;
+        // Headings use the title face; everything else the reading face. No letter spacing anywhere.
+        label.font = display || size >= 36 ? LucidUI.Display : font;
         label.fontSize = size;
         label.fontStyle = FontStyle.Normal;
-        var shadow = go.AddComponent<UnityEngine.UI.Shadow>();
-        shadow.effectColor = new Color(0f, 0.015f, 0.04f, 0.75f);
-        shadow.effectDistance = new Vector2(0f, -2f);
-        label.color = color;
+        LucidUI.Style(label);
+        label.color = color == ivory ? LucidUI.Cream : color;
         label.alignment = TextAnchor.MiddleLeft;
         label.raycastTarget = false;
-        label.text = value;
+        label.text = size >= 36 ? Nice(value) : value;
         return label;
     }
 
@@ -630,20 +663,29 @@ public sealed class DreamcatcherPresentation : MonoBehaviour
         go.transform.SetParent(panel, false);
         go.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = height;
         var image = go.GetComponent<UnityEngine.UI.Image>();
+        image.color = new Color(1f, 1f, 1f, 0f);
         var button = go.GetComponent<UnityEngine.UI.Button>();
         button.targetGraphic = image;
-        var colors = button.colors;
-        colors.normalColor = new Color(0.3f, 0.7f, 0.8f, 0f);
-        colors.highlightedColor = colors.selectedColor = new Color(0.3f, 0.7f, 0.8f, 0.12f);
-        colors.pressedColor = new Color(0.5f, 0.85f, 0.9f, 0.22f);
-        colors.fadeDuration = 0.18f;
-        button.colors = colors;
-        var label = AddText(title, primary ? 25 : 20, height, ivory);
+        button.transition = UnityEngine.UI.Selectable.Transition.None;
+        // Selected: a thread runs in from the screen edge and ends in a bead before the word,
+        // like the hanging string of a dreamcatcher (animated by LucidButtonFx).
+        var thread = LucidUI.Stretch(go.transform, "Thread", new Vector2(0f, .5f), new Vector2(0f, .5f), new Vector2(-104f, -1f), new Vector2(4f, 1f), accent);
+        thread.rectTransform.pivot = new Vector2(0f, .5f);
+        thread.rectTransform.anchoredPosition = new Vector2(-104f, 0f);
+        var bead = new GameObject("Bead", typeof(RectTransform), typeof(LucidRing), typeof(UnityEngine.UI.LayoutElement));
+        bead.GetComponent<UnityEngine.UI.LayoutElement>().ignoreLayout = true;
+        var beadRect = (RectTransform)bead.transform;
+        beadRect.SetParent(go.transform, false);
+        beadRect.anchorMin = beadRect.anchorMax = new Vector2(0f, .5f);
+        beadRect.anchoredPosition = new Vector2(8f, 0f); beadRect.sizeDelta = new Vector2(10f, 10f);
+        var beadRing = bead.GetComponent<LucidRing>(); beadRing.thickness = 5f; beadRing.raycastTarget = false;
+        var label = AddText(Nice(title), primary ? 30 : 24, height, LucidUI.Cream);
         label.rectTransform.SetParent(go.transform, false);
         label.rectTransform.anchorMin = Vector2.zero;
         label.rectTransform.anchorMax = Vector2.one;
-        label.rectTransform.offsetMin = new Vector2(15f, 0f);
+        label.rectTransform.offsetMin = new Vector2(24f, 0f);
         label.rectTransform.offsetMax = new Vector2(-10f, 0f);
+        go.AddComponent<LucidButtonFx>().Init(thread, beadRing, label);
         button.onClick.AddListener(() => { LucidAudio.Play(LucidAudio.Cue.Capture); action(); });
         if (events.currentSelectedGameObject == null || !events.currentSelectedGameObject.activeInHierarchy)
             events.SetSelectedGameObject(go);

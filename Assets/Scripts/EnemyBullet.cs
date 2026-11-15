@@ -96,10 +96,17 @@ public class EnemyBullet : MonoBehaviour
         bullet.faller = false; bullet.listener = null; bullet.Tag = 0;
         if (bossMaterial == null)
         {
-            var shader = Resources.Load<Shader>("Combat/EclipseOrb");
+            // Visual only: boss projectiles are drawn as feathers. Colour and danger still come from Look().
+            var shader = Resources.Load<Shader>("Combat/BossFeather");
+            if (shader == null) shader = Resources.Load<Shader>("Combat/EclipseOrb");
             if (shader != null) bossMaterial = new Material(shader);
         }
-        if (bullet.core != null && bossMaterial != null) bullet.core.sharedMaterial = bossMaterial;
+        if (bullet.core != null && bossMaterial != null)
+        {
+            bullet.core.sharedMaterial = bossMaterial;
+            var filter = bullet.core.GetComponent<MeshFilter>();
+            if (filter != null && filter.sharedMesh != BossFeatherMesh.Get()) filter.sharedMesh = BossFeatherMesh.Get();
+        }
         bullet.Look(world == World.Dream ? new Color(0.12f, 0.7f, 1f) : new Color(1f, 0.38f, 0.06f), bullet.IsDreamSeed ? 0f : 1f, 1.25f);
         bullet.hitRadius = 0.65f;
         if (bullet.trail != null) { bullet.trail.time = 0.12f; bullet.trail.widthMultiplier = 0.45f; bullet.trail.Clear(); }
@@ -226,6 +233,8 @@ public class EnemyBullet : MonoBehaviour
         }
         Vector3 from=transform.position;
         transform.position+=dir*speed*dt;
+        // Feathers fly point first and spin on their shaft.
+        if(bossOrb && core!=null && dir.sqrMagnitude>0.001f) core.transform.rotation=Quaternion.FromToRotation(Vector3.up,dir)*Quaternion.AngleAxis(Time.time*320f+(GetInstanceID()&255),Vector3.up);
         life-=dt;
         if(life<=0f) { End(BulletEnd.Expired); return; }
         if(faller && transform.position.y<=BossHazards.FloorY) { End(BulletEnd.Ground); return; }

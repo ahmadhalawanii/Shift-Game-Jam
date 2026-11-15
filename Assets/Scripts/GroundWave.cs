@@ -36,7 +36,8 @@ public class GroundWave : MonoBehaviour
         wave.controller = player.GetComponent<PlayerController>();
         wave.speed = Mathf.Clamp(travelSpeed, 6f, 18f);
         wave.previousSeparation = HorizontalDistance(player.position, wave.transform.position);
-        Shader shader = Shader.Find("Lucid/GlowParticle");
+        Shader shader = Resources.Load<Shader>("Combat/HazardEnergy");
+        if (shader == null) shader = Shader.Find("Lucid/GlowParticle");
         if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
         wave.material = new Material(shader);
         if (wave.material.HasProperty("_Trail")) wave.material.SetFloat("_Trail", 1f);

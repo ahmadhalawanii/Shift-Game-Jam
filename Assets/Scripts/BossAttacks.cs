@@ -97,6 +97,7 @@ public abstract class BossAttack
         new NightTerrorFan(), new PrismBeams(), new ShatterGrid(), new HunterOrbs(), new EclipseMeteors(),
         new WhipTendrils(), new ThornBurst(), new TrackingBeams(),
         new MandalaBloom(), new PetalBlade(), new Sleepwalk(),
+        new TalonDive(), new FeatherGale(), new MoonlitMolt(),
     };
 }
 

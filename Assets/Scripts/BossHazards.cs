@@ -42,7 +42,9 @@ public sealed class BossHazards : MonoBehaviour
         {
             if (material == null)
             {
-                material = new Material(Shader.Find("Lucid/GlowParticle"));
+                // Visual only: the energy shader takes the same colour, alpha and width as the glow shader.
+                var energy = Resources.Load<Shader>("Combat/HazardEnergy");
+                material = new Material(energy != null ? energy : Shader.Find("Lucid/GlowParticle"));
                 material.SetFloat("_Trail", 1f);
                 material.SetColor("_Color", Color.white);
             }
